@@ -32,6 +32,6 @@ options(scipen = 4)
 
 ```{r, read_data}
 AmesHousing = read.csv("AmesHousing.csv")
-# summary(AmesHousing)
 glimpse(AmesHousing)
+# summary(AmesHousing)
 ```
