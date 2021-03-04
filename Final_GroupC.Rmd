@@ -1,0 +1,37 @@
+---
+title: "Final [Total: 40 points]"
+subtitle: "Data Mining - S21 A3"
+author: "Group C" 
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: lumen
+    highlight: pygments
+---
+
+```{r, set_up, echo = F, message = F, warning = F}
+library(ISLR)
+library(ggplot2)
+library(ggcorrplot)
+library(GGally)
+library(leaps)
+library(splines)
+library(plyr)
+library(gam)
+library(glmnet)
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+options(scipen = 4)
+```
+
+```{r, read_data}
+AmesHousing = read.csv("AmesHousing.csv")
+# summary(AmesHousing)
+glimpse(AmesHousing)
+```
