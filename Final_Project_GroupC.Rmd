@@ -56,7 +56,7 @@ sum(is.na(housing))
 ```
 
 
-### 1. Exploratory Data Analysis
+### 1. Exploratory Data Analysis (Anthony w/ assistance)
 
 #### Identify general trends in sales prices across time, neighbourhood, and home characteristics
 
@@ -67,27 +67,19 @@ sum(is.na(housing))
 ```
 
 
-### 2. Sales Price Prediction Model
+### 2. Sales Price Prediction Model (Khadija w/ assistance)
 > Tip: think about performance metrics other than MSE: MAE, relative error, etc.
 
-#### A predictive model that uses housing sale prices 2006-2009.
+#### A predictive model that uses housing sale prices 2006-2009. 
 
+#####  Model 1 (Khadija)
 ```{r}
 
 #Code Here
 
 ```
 
-####Performance is evaluated against *appropriate validation methods*.
-
-```{r}
-
-#Code Here
-
-```
-
-#### Compare estimated prediction accuracy against actual performance of 2010 data.
-
+##### Model 2 (Khadija)
 ```{r}
 
 #Code Here
@@ -95,7 +87,29 @@ sum(is.na(housing))
 ```
 
 
-### 3. Home Features that are most Predictive of Sales Price.
+
+##### Model 3 (Evan)
+```{r}
+
+#Code Here
+
+```
+
+##### Model 4 (Evan)
+```{r}
+
+#Code Here
+
+```
+
+##### Model 5 (Anthony)
+```{r}
+
+#Code Here
+
+```
+
+####Performance is evaluated against *appropriate validation methods*. (Evan)
 
 ```{r}
 
@@ -103,7 +117,7 @@ sum(is.na(housing))
 
 ```
 
-#### The Above Features Relation to Sales Price/
+#### Compare estimated prediction accuracy against actual performance of 2010 data.(Evan)
 
 ```{r}
 
@@ -111,7 +125,8 @@ sum(is.na(housing))
 
 ```
 
-### 4. Model's accracy across neighbourhoods (geographic variance)
+
+### 3. Home Features that are most Predictive of Sales Price.(Anthony)
 
 ```{r}
 
@@ -119,7 +134,23 @@ sum(is.na(housing))
 
 ```
 
-### 5. Renovation Value Calculator
+#### The Above Features Relation to Sales Price? (Anthony)
+
+```{r}
+
+#Code Here
+
+```
+
+### 4. Model's accracy across neighbourhoods (geographic variance) (Khadija)
+
+```{r}
+
+#Code Here
+
+```
+
+### 5. Renovation Value Calculator (Evan and Anthony)
 
 ```{r}
 
