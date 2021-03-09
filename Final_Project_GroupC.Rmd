@@ -27,6 +27,15 @@ library(randomForest)
 library(pROC)
 ```
 
+### Import and Initial Data Prep
+### Be sure to set working directory to source file location
+
+```{r}
+
+housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
+
+```
+
 
 ### 1. Exploratory Data Analysis
 
@@ -93,7 +102,11 @@ library(pROC)
 
 ### 5. Renovation Value Calculator
 
+```{r}
 
+#Code Here
+
+```
 
 
 
