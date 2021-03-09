@@ -2,29 +2,105 @@
 title: "Final_Project_GroupC"
 author: "Kramer, Rashid, and Stone"
 date: "3/8/2021"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    theme: cerulean
+    highlight: textmate
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+### Preamble: Loading packages and data
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ISLR)
+library(partykit)
+library(caret)
+library(rpart)
+library(randomForest)
+library(pROC)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+### 1. Exploratory Data Analysis
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+#### Identify general trends in sales prices across time, neighbourhood, and home characteristics
+
+```{r}
+
+#Code Here
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### 2. Sales Price Prediction Model
+> Tip: think about performance metrics other than MSE: MAE, relative error, etc.
+
+#### A predictive model that uses housing sale prices 2006-2009.
+
+```{r}
+
+#Code Here
+
+```
+
+####Performance is evaluated against *appropriate validation methods*.
+
+```{r}
+
+#Code Here
+
+```
+
+#### Compare estimated prediction accuracy against actual performance of 2010 data.
+
+```{r}
+
+#Code Here
+
+```
+
+
+### 3. Home Features that are most Predictive of Sales Price.
+
+```{r}
+
+#Code Here
+
+```
+
+#### The Above Features Relation to Sales Price/
+
+```{r}
+
+#Code Here
+
+```
+
+### 4. Model's accracy across neighbourhoods (geographic variance)
+
+```{r}
+
+#Code Here
+
+```
+
+### 5. Renovation Value Calculator
+
+
+
+
+
+
+
+
+
+
+
+
