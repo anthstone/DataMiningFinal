@@ -31,9 +31,17 @@ library(pROC)
 ### Be sure to set working directory to source file location
 
 ```{r}
-
+#bring in housing data
 housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 
+#check for NAs
+sum(is.na(housing))
+
+#remove NAs
+housing=na.omit(housing)
+
+#verify NAs
+sum(is.na(housing))
 ```
 
 
