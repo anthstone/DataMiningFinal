@@ -75,30 +75,50 @@ sum(is.na(housing))
 
 col.vector = seq(2, 81, by=1) #We do not need the iOrder or PID value
 
-for (i in col.vector){
-  
-  plots<-ggplot(data = housing,
-              aes(x=SalePrice,y=housing[[i]]))+
-  geom_line()+
-  geom_point(x=which.max(housing[[i]]),
-              y=max(housing[[i]]),aes(color="red"),
-              show.legend = FALSE)+
-  xlab("# Variables")+
-  ylab("R-squared")+
-  theme_bw()
-  #print(plots)
+# for (i in col.vector){
+#   
+#   plots<-ggplot(data = housing,
+#               aes(x=SalePrice,y=housing[[i]]))+
+#   geom_line()+
+#   geom_point(x=which.max(housing[[i]]),
+#               y=max(housing[[i]]),aes(color="red"),
+#               show.legend = FALSE)+
+#   xlab("# Variables")+
+#   ylab("R-squared")+
+#   theme_bw()
+#   print(plots)
+# 
+# }
 
+# for (i in col.vector){
+#   
+#   plots<-ggplot(data = housing,
+#               aes(x=housing[[i]],y=SalePrice))+
+#   geom_line()+
+#   geom_point(x=which.max(housing$SalePrice),
+#               y=max(housing$SalePrice),aes(color="red"),
+#               show.legend = FALSE)+
+#   xlab("# Variables")+
+#   ylab("R-squared")+
+#   theme_bw()
+#   print(plots)
+# 
+# }
+
+numeric.df <-housing[unlist(lapply(housing, is.numeric)) ]
+numeric.cols <- numeric.df[,-1:-2]
+numeric.cols.vec <- seq(1, ncol(numeric.cols), by=1)
+for (i in numeric.cols.vec){
+  plots<- qplot(data = housing, x = numeric.cols[,i], y = SalePrice,
+        xlab = paste(colnames(numeric.cols)[i]) , ylab = "SalePrice") + stat_smooth(method = "lm")
+  print(plots)
+  
 }
 
-numeric.cols <-housing[unlist(lapply(housing, is.numeric)) ] 
-cor.housing.sales <- cor(numeric.cols[,-1:-2])
+
+cor.housing.sales <- cor(numeric.df[,-1:-2])
 ggcorrplot(cor.housing.sales)
 
-ta <- cor.housing.sales >= 0.8
-
-if (cor.housing.sales >= 0.8){
-  
-}
 ```
 Once the dataset has been scrubbed, initial exploratory data analysis is conducted. The first analysis is looking at all numeric vectors in the dataset and checking to see if there are any correlations between variables.
 Correlations:
