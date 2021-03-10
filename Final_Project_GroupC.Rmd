@@ -37,18 +37,28 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 #check for NAs
 sum(is.na(housing))
 
-# Every record has an NA in some form. Will need to subset data. 
-#Alley--possibly just switch NA for another value? They simply do not have an alley.
-housing$Alley[is.na(housing$Alley)] = "DNE"
-#Lot Front -- Change to 0? They simply do not have a front yard.
-housing$Alley[is.na(housing$Alley)] = 0
+ 
+# #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
+# Bsmt.Full.Bath
+# Bsmt.Half.Bath
+#Garage.Yr.Blt data is a Year value may need to be adjusted.
+#Mas.Vnr.Area
 
-#BSMT data--possibly just switch NA for another value? They simply do not have basements
-#housing=na.omit(housing)
+DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
+zero.Cols = c(49,50,5,61,63,64,28)
+zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
 
-#replace NAs with zero
+for (i in DNE.Cols){
+  housing[[i]][is.na(housing[[i]])] = "DNE"
+}
 
+for (i in zero.Cols){
+  housing[[i]][is.na(housing[[i]])] = 0
+}
 
+for (i in zero.Cols.alt){
+  housing[[i]][is.na(housing[[i]])] = 0
+}
 
 #verify NAs
 sum(is.na(housing))
