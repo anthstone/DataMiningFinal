@@ -19,6 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, message=FALSE}
 library(tidyverse)
 library(ggplot2)
+library(ggcorrplot)
 library(ISLR)
 library(partykit)
 library(caret)
@@ -72,10 +73,38 @@ sum(is.na(housing))
 
 ```{r}
 
-#Code Here
+col.vector = seq(2, 81, by=1) #We do not need the iOrder or PID value
 
+for (i in col.vector){
+  
+  plots<-ggplot(data = housing,
+              aes(x=SalePrice,y=housing[[i]]))+
+  geom_line()+
+  geom_point(x=which.max(housing[[i]]),
+              y=max(housing[[i]]),aes(color="red"),
+              show.legend = FALSE)+
+  xlab("# Variables")+
+  ylab("R-squared")+
+  theme_bw()
+  #print(plots)
+
+}
+
+numeric.cols <-housing[unlist(lapply(housing, is.numeric)) ] 
+cor.housing.sales <- cor(numeric.cols[,-1:-2])
+ggcorrplot(cor.housing.sales)
+
+ta <- cor.housing.sales >= 0.8
+
+if (cor.housing.sales >= 0.8){
+  
+}
 ```
-
+Once the dataset has been scrubbed, initial exploratory data analysis is conducted. The first analysis is looking at all numeric vectors in the dataset and checking to see if there are any correlations between variables.
+Correlations:
+Total.Bsmt.SF   ~   X1st.Flr.SF     (0.80)
+Gr.Liv.Area     ~   TotRms.AbvGrd   (0.81)
+Garage.Cars     ~   Garage.Area     (0.89)
 
 ### 2. Sales Price Prediction Model (Khadija w/ assistance)
 > Tip: think about performance metrics other than MSE: MAE, relative error, etc.
