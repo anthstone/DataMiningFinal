@@ -26,6 +26,8 @@ library(caret)
 library(rpart)
 library(randomForest)
 library(pROC)
+library(leaps)
+library(glmnet)
 ```
 
 ### Import and Initial Data Prep
@@ -145,20 +147,166 @@ Garage.Cars     ~   Garage.Area     (0.89)
 
 ```
 
-
-
 ##### Model 3 (Evan)
 ```{r}
+# Forward and backward stepwise (best subset will be too time-intensive)
+nvmax = 1000 #ncol(housing)
+model = map(
+  .x = c('forward', 'backward'),
+  .f = ~regsubsets(SalePrice ~ .,
+           data = housing[housing$Yr.Sold != 2010, ],
+           nvmax = nvmax, method = .x, really.big = F)
+)
 
-#Code Here
+# Find optimal models
+for(.x in 1:2) {
+  num_variables = 1:length(summary(model[[.x]])$rss)
+  # R^2
+  plot_RSQ = ggplot(data = data.frame(summary(model[[.x]])$rsq),
+                    aes(x = num_variables, y = summary(model[[.x]])$rsq)) +
+    geom_line() +
+    geom_point(x = which.max(summary(model[[.x]])$rsq),
+               y = max(summary(model[[.x]])$rsq), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("R-squared") +
+    theme_bw()
+  # RSS
+  plot_RSS = ggplot(data = data.frame(summary(model[[.x]])$rss),
+                    aes(x = num_variables, y = summary(model[[.x]])$rss)) +
+    geom_line() +
+    geom_point(x = which.min(summary(model[[.x]])$rss),
+               y = min(summary(model[[.x]])$rss), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("RSS") +
+    theme_bw()
+  # BIC
+  plot_BIC = ggplot(data = data.frame(summary(model[[.x]])$bic),
+                    aes(x = num_variables, y = summary(model[[.x]])$bic)) +
+    geom_line() +
+    geom_point(x = which.min(summary(model[[.x]])$bic),
+               y = min(summary(model[[.x]])$bic), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("BIC") +
+    ggtitle("BIC", 
+            str_c("Optimal value at ", which.min(summary(model[[.x]])$bic))) + 
+    theme_bw()
+  # AIC
+  plot_AIC = ggplot(data = data.frame(summary(model[[.x]])$cp),
+                    aes(x = num_variables, y = summary(model[[.x]])$cp)) +
+    geom_line() +
+    geom_point(x = which.min(summary(model[[.x]])$cp),
+               y = min(summary(model[[.x]])$cp), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("AIC") +
+    ggtitle("AIC", 
+            str_c("Optimal value at ", which.min(summary(model[[.x]])$cp))) + 
+    theme_bw()
+  # Plot
+  gridExtra::grid.arrange(plot_RSQ, plot_RSS, plot_AIC, plot_BIC, 
+                           ncol = 2, nrow = 2)
+}
 
+# Get predictions from optimal models
+model_coef = map(1:2, 
+                 ~coef(model[[.x]], which.min(summary(model[[.x]])$bic)))
+temp = bind_rows(
+  tibble(method = 'forward', var = names(model_coef[[1]]), 
+         coef = model_coef[[1]], varmatch = NA_character_),
+  tibble(method = 'backward', var = names(model_coef[[2]]), 
+         coef = model_coef[[2]], varmatch = NA_character_)
+) 
+
+# Try to figure out programmatically which variables are in the models
+for(r in 1:nrow(temp)) {
+  if(temp$method[r] == 'forward') {
+    potential_names = names(housing)[agrepl(names(model_coef[[1]][r]),
+                                            names(housing), 
+                                            max.distance = 0.2)]
+  } else {
+    potential_names = names(housing)[agrepl(names(model_coef[[2]][r]),
+                                            names(housing),
+                                            max.distance = 0.2)]
+  }
+  if(length(potential_names) == 0) {
+    varmatch = NA_character_
+  } else if(length(potential_names) == 1) {
+    varmatch = potential_names
+  } else {
+    varmatch = str_flatten(
+      intersect(
+        unlist(strsplit(potential_names, '')), 
+        unlist(strsplit(potential_names, ''))
+      )
+    )
+  }
+  temp$varmatch[r] = varmatch
+}
+
+# Refit: Forward
+forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Shape', 'Lot.Config',
+                       'Land.Slope', 'Neighborhood', 'Condition.1',
+                       'Condition.2', 'Bldg.Type', 'Overall.Qual',
+                       'Overall.Cond', 'Year.Built', 'Roof.Matl', 
+                       'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual',
+                       'Foundation', 'Bsmt.Qual', 'BsmtFin.Type.1',
+                       'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
+                       'TotRms.AbvGrd', 'Functional', 'Fireplaces', 
+                       'Fireplace.Qu', 'Garage.Type', 'Garage.Qual',
+                       'Paved.Drive', 'Open.Porch.SF', 'Misc.Feature',
+                       'Misc.Val', 'Mo.Sold', 'Yr.Sold', 'Sale.Type',
+                       'BsmtFin.Type.1', 'Garage.Finish', 'Garage.Cond')
+forward_pred = predict(
+  lm(formula(paste('SalePrice ~', str_flatten(forward_predictors, "+"))), 
+     data = housing), #[housing$Yr.Sold != 2010, ]),
+  housing[housing$Yr.Sold == 2010, ]
+)
+
+# Refit: Backward
+backward_predictors = c('MS.SubClass', 'MS.Zoning', 'Lot.Area', 'Land.Contour',
+                        'Neighborhood', 'Condition.1', 'Condition.2',
+                        'Bldg.Type', 'Overall.Qual', 'Overall.Cond', 
+                        'Year.Built', 'Year.Remod.Add', 'Roof.Matl', 
+                        'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual', 
+                        'Exter.Cond', 'Bsmt.Qual', 'BsmtFin.Type.1', 
+                        'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
+                        'Functional', 'Fireplaces', 'Fireplace.Qu', 
+                        'Garage.Type', 'Garage.Qual', 'Paved.Drive', 
+                        'Open.Porch.SF', 'Pool.QC', 'Misc.Feature', 'Mo.Sold',
+                        'Sale.Type', 'BsmtFin.Type.1', 'Garage.Cond')
+backward_pred = predict(
+  lm(formula(paste('SalePrice ~', str_flatten(backward_predictors, "+"))), 
+     data = housing), #[housing$Yr.Sold != 2010, ]),
+  housing[housing$Yr.Sold == 2010, ]
+)
 ```
 
 ##### Model 4 (Evan)
 ```{r}
+# GLM
+glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
+names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 
-#Code Here
-
+# Lasso
+# Define x and y objects for Lasso, as well as specifying training data
+x = model.matrix(SalePrice ~ ., housing)[, -1]
+y = housing$SalePrice
+train = which(housing$Yr.Sold != 2010)
+# Fit and plot model
+lasso_model = cv.glmnet(x[train, ], y[train], alpha = 1)
+plot(lasso_model)
+# Find min and 1SE values of lambda
+lasso_model$lambda.min; lasso_model$lambda.1se
+lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se, 
+                     newx = x[-train, ])
+# Refit model and find non-zero coefficients
+lasso_model_coef = map(
+  .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
+  .f = ~predict(glmnet(x, y, alpha = 1), s = .x, type = 'coefficients')
+)
 ```
 
 ##### Model 5 (Anthony)
@@ -171,16 +319,60 @@ Garage.Cars     ~   Garage.Area     (0.89)
 ####Performance is evaluated against *appropriate validation methods*. (Evan)
 
 ```{r}
-
-#Code Here
-
+# Create performance_metrics function
+performance_metrics = function(actual, predicted, plot = T) {
+  # Check that actual and predicted values are the same length
+  if(length(actual) != length(predicted)) {
+    message("'actual' and 'predicted' vectors must be the same length.")
+  } else {
+    # Initialize list
+    list = list()
+    
+    # Compute metrics (MSE, RMSE, MAE, relative error)
+    mse = mean((actual - predicted)^2)
+    mae = mean(abs(actual - predicted))
+    rel_error = mean((predicted - actual) / actual)
+    
+    # Plot
+    if(plot) {
+      barplot = ggplot(data = tibble(mse, mae, rel_error) %>% 
+                      pivot_longer(cols = everything(),
+                                   names_to = 'performance_metric',
+                                   values_to = 'metric_score'),
+                    aes(x = performance_metric, y = metric_score)) + 
+        geom_bar(stat = 'identity') + 
+        geom_text(aes(label = round(metric_score, 3))) + 
+        xlab("Metric") +
+        scale_y_continuous(
+          # limits = c(min(mse, mae, rel_error),
+                     # max(mse, mae, rel_error) /
+                       # sd(c(mse, mae, rel_error))),
+          name = "Score"
+        ) +
+        theme_bw()
+      scatter = ggplot(data = tibble(actual = actual, 
+                                     predicted = predicted), 
+                       aes(x = actual, y = predicted)) + 
+        geom_point(aes(size = abs(actual - predicted)), alpha = 0.4) + 
+        xlab("Actual") + 
+        ylab("Predicted") + 
+        geom_abline(slope = 1, intercept = 0, col = 'red') + 
+        theme_bw()
+    }
+    
+    # Return objects
+    return(list(metrics = data.frame(mse = mse, mae = mae,
+                                     rel_error = rel_error),
+                barplot = barplot,
+                scatter = scatter))
+  }
+}
 ```
 
 #### Compare estimated prediction accuracy against actual performance of 2010 data.(Evan)
 
 ```{r}
-
-#Code Here
+# Use performance_metrics function defined above for all models
 
 ```
 
@@ -212,17 +404,9 @@ Garage.Cars     ~   Garage.Area     (0.89)
 ### 5. Renovation Value Calculator (Evan and Anthony)
 
 ```{r}
-
-#Code Here
-
+# Will need to know what features are most associated with sale price
+# Look up average renovation costs; create kitchen/bath flags
+reno_value = function() {
+  
+}
 ```
-
-
-
-
-
-
-
-
-
-
