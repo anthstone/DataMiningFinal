@@ -28,6 +28,7 @@ library(randomForest)
 library(pROC)
 library(leaps)
 library(glmnet)
+library(gbm)
 ```
 
 ### Import and Initial Data Prep
@@ -285,7 +286,7 @@ backward_pred = predict(
 ```
 
 ##### Model 4 (Evan)
-```{r}
+```{r, cache = T}
 # GLM
 glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
@@ -307,6 +308,22 @@ lasso_model_coef = map(
   .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
   .f = ~predict(glmnet(x, y, alpha = 1), s = .x, type = 'coefficients')
 )
+
+# Tree-based and boosted models
+boost_model = gbm(SalePrice ~ ., 
+                  data = mutate_if(housing, is.character, as.factor)[housing$Yr.Sold != 2010, ],
+                  distribution = 'gaussian', 
+                  n.trees = 5000,
+                  cv.folds = 10,
+                  shrinkage = 0.1,
+                  interaction.depth = 4)
+summary(boost_model)
+for(.x in 1:5) {
+  plot(boost_model, i = summary(boost_model)[.x, 'var'])
+}
+boost_pred = predict(boost_model, 
+                     newdata = housing[housing$Yr.Sold == 2010, ],
+                     n.trees = 5000)
 ```
 
 ##### Model 5 (Anthony)
@@ -316,7 +333,7 @@ lasso_model_coef = map(
 
 ```
 
-####Performance is evaluated against *appropriate validation methods*. (Evan)
+#### Performance is evaluated against *appropriate validation methods*. (Evan)
 
 ```{r}
 # Create performance_metrics function
@@ -358,13 +375,15 @@ performance_metrics = function(actual, predicted, plot = T) {
         ylab("Predicted") + 
         geom_abline(slope = 1, intercept = 0, col = 'red') + 
         theme_bw()
-    }
-    
-    # Return objects
-    return(list(metrics = data.frame(mse = mse, mae = mae,
+      # Return objects
+      return(list(metrics = data.frame(mse = mse, mae = mae,
                                      rel_error = rel_error),
                 barplot = barplot,
                 scatter = scatter))
+    } else {
+      return(list(metrics = data.frame(mse = mse, mae = mae,
+                                     rel_error = rel_error)))
+    }
   }
 }
 ```
@@ -382,7 +401,7 @@ performance_metrics = function(actual, predicted, plot = T) {
 ```{r}
 
 #Code Here
-
+ 
 ```
 
 #### The Above Features Relation to Sales Price? (Anthony)
@@ -406,7 +425,32 @@ performance_metrics = function(actual, predicted, plot = T) {
 ```{r}
 # Will need to know what features are most associated with sale price
 # Look up average renovation costs; create kitchen/bath flags
-reno_value = function() {
+# https://www.businessinsider.com/home-renovation-cost-each-room-2019-6
+# Add bathroom
+# Remodel kitchen (check kitchen quality?)
+
+reno_value = function(upgrade = c('add_bathroom', 'remodel_kitchen',
+                                  'finish_basement', 'replace_roof')) {
+  # Confirm upgrade
+  upgrade = tryCatch(
+    match.arg(upgrade, choices = c('add_bathroom', 'remodel_kitchen',
+                                  'finish_basement', 'replace_roof'),
+                      several.ok = T),
+    error = identity
+  )
+
+  # Check that the upgrades can be completed 
   
+  
+  # Return the new dataframe with cost and value estimates
+  df = data.frame(est_cost = NA_real_, est_value = NA_real_)
+  print(upgrade)
+  if(str_detect(upgrade, "Error")) {
+    return(message(upgrade))
+  } else {
+    return(df)
+  }
 }
+
+# Apply it to listings in the 2010 data where some of these improvements are possible.    Are there any cases where you would recommend particular home improvements to the clients?  For this question you will want to look up typical costs for these types of renovations. 
 ```
