@@ -34,35 +34,41 @@ library(pROC)
 ```{r}
 #bring in housing data
 housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
+```
 
-#check for NAs
-sum(is.na(housing))
+### Clean Dataset and Remove NA values
+```{r}
+#verify NAs
+if (sum(is.na(housing)) > 0) {
+  print(sum(is.na(housing)))
+  
+  #Columns that contain NAs. Vectors with qualitative data will have NAs changed to DNE
+  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
+  #Numeric vectors will have their NAs changed to zero.
+  zero.Cols = c(49,50,5,61,63,64,28)
+  zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
+  
+  #Replace NAs with DNE for given columns
+  for (i in DNE.Cols){
+    housing[[i]][is.na(housing[[i]])] = "DNE"
+  }
+  
+  #Replace NAs with zero for given columns
+  for (i in zero.Cols){
+    housing[[i]][is.na(housing[[i]])] = 0
+  }
+  
+  #Replace NAs with zero for given columns in row 1342. 
+  for (i in zero.Cols.alt){
+    housing[[i]][is.na(housing[[i]])] = 0
+  }
+}
 
- 
 # #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
 # Bsmt.Full.Bath
 # Bsmt.Half.Bath
 #Garage.Yr.Blt data is a Year value may need to be adjusted.
 #Mas.Vnr.Area
-
-DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
-zero.Cols = c(49,50,5,61,63,64,28)
-zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
-
-for (i in DNE.Cols){
-  housing[[i]][is.na(housing[[i]])] = "DNE"
-}
-
-for (i in zero.Cols){
-  housing[[i]][is.na(housing[[i]])] = 0
-}
-
-for (i in zero.Cols.alt){
-  housing[[i]][is.na(housing[[i]])] = 0
-}
-
-#verify NAs
-sum(is.na(housing))
 
 ```
 
