@@ -337,21 +337,56 @@ boost_pred = predict(boost_model,
 
 ```{r, cache = T}
 # Create performance_metrics function
-performance_metrics = function(actual, predicted, plot = T) {
+performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], predicted, plot = T, by_neighborhood = F) {
   # Check that actual and predicted values are the same length
   if(length(actual) != length(predicted)) {
     message("'actual' and 'predicted' vectors must be the same length.")
   } else {
-    # Initialize list
-    list = list()
-    
     # Compute metrics (MSE, RMSE, MAE, relative error)
-    mse = mean((actual - predicted)^2)
-    mae = mean(abs(actual - predicted))
-    rel_error = mean((predicted - actual) / actual)
-    
-    # Plot
-    if(plot) {
+    # Including by neighborhood
+    if(by_neighborhood) {
+      metrics = tibble(
+        neighborhood = housing[housing$Yr.Sold == 2010, 'Neighborhood'],
+        actual = actual,
+        predicted = as.numeric(predicted),
+        mse = (actual - predicted)^2,
+        mae = abs(actual - predicted),
+        rel_error = (predicted - actual) / actual
+      ) %>% 
+        group_by(neighborhood) %>% 
+        summarize(across(mse:rel_error, mean)) %>% 
+        ungroup()
+      
+      # Plot
+      barplot = ggplot(data = pivot_longer(temp, cols = mse:rel_error,
+                                           names_to = 'performance_metric',
+                                           values_to = 'metric_score'),
+                    aes(x = performance_metric, y = metric_score)) + 
+        geom_bar(stat = 'identity') + 
+        geom_text(aes(label = round(metric_score, 3))) + 
+        xlab("Metric") +
+        ylab("Score") + 
+        facet_wrap(~neighborhood) + 
+        theme_bw()
+      scatter = ggplot(data = tibble(
+        neighborhood = housing[housing$Yr.Sold == 2010, 'Neighborhood'],
+        actual = actual, 
+        predicted = predicted), 
+        aes(x = actual, y = predicted)) + 
+        geom_point(aes(size = abs(actual - predicted)), alpha = 0.4) + 
+        xlab("Actual") + 
+        ylab("Predicted") + 
+        facet_wrap('neighborhood') +
+        geom_abline(slope = 1, intercept = 0, col = 'red') + 
+        theme_bw()
+    } else {
+      # Compute error and create data frame
+      mse = mean((actual - predicted)^2)
+      mae = mean(abs(actual - predicted))
+      rel_error = mean((predicted - actual) / actual)
+      metrics = tibble(mse = mse, mae = mae, rel_error = rel_error)
+      
+      # Plot
       barplot = ggplot(data = tibble(mse, mae, rel_error) %>% 
                       pivot_longer(cols = everything(),
                                    names_to = 'performance_metric',
@@ -360,12 +395,7 @@ performance_metrics = function(actual, predicted, plot = T) {
         geom_bar(stat = 'identity') + 
         geom_text(aes(label = round(metric_score, 3))) + 
         xlab("Metric") +
-        scale_y_continuous(
-          # limits = c(min(mse, mae, rel_error),
-                     # max(mse, mae, rel_error) /
-                       # sd(c(mse, mae, rel_error))),
-          name = "Score"
-        ) +
+        ylab("Score") + 
         theme_bw()
       scatter = ggplot(data = tibble(actual = actual, 
                                      predicted = predicted), 
@@ -375,14 +405,13 @@ performance_metrics = function(actual, predicted, plot = T) {
         ylab("Predicted") + 
         geom_abline(slope = 1, intercept = 0, col = 'red') + 
         theme_bw()
-      # Return objects
-      return(list(metrics = data.frame(mse = mse, mae = mae,
-                                     rel_error = rel_error),
-                barplot = barplot,
-                scatter = scatter))
+    }
+    
+    # Return objects
+    if(plot) {
+      return(list(metrics = metrics, barplot = barplot, scatter = scatter))
     } else {
-      return(list(metrics = data.frame(mse = mse, mae = mae,
-                                     rel_error = rel_error)))
+      return(list(metrics = metrics))
     }
   }
 }
@@ -426,7 +455,7 @@ performance_metrics = function(actual, predicted, plot = T) {
 # Look up average renovation costs; create kitchen/bath flags
 # https://www.businessinsider.com/home-renovation-cost-each-room-2019-6
 # https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.
-reno_value = function(upgrade = c('add_bathroom', 'remodel_kitchen',
+reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
                       budget = c('low', 'medium', 'high')) {
   
@@ -451,7 +480,7 @@ reno_value = function(upgrade = c('add_bathroom', 'remodel_kitchen',
     remodeled_housing = mutate(housing, Reno.Cost = 0)
     
     # Add bathroom
-    if('add_bathroom' %in% upgrade) {
+    if('add_full_bathroom' %in% upgrade) {
       remodeled_housing = mutate(
         remodeled_housing,
         budget = budget,
