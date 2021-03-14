@@ -149,7 +149,7 @@ Garage.Cars     ~   Garage.Area     (0.89)
 ```
 
 ##### Model 3 (Evan)
-```{r}
+```{r, cache = T}
 # Forward and backward stepwise (best subset will be too time-intensive)
 nvmax = 1000 #ncol(housing)
 model = map(
@@ -335,7 +335,7 @@ boost_pred = predict(boost_model,
 
 #### Performance is evaluated against *appropriate validation methods*. (Evan)
 
-```{r}
+```{r, cache = T}
 # Create performance_metrics function
 performance_metrics = function(actual, predicted, plot = T) {
   # Check that actual and predicted values are the same length
@@ -422,35 +422,148 @@ performance_metrics = function(actual, predicted, plot = T) {
 
 ### 5. Renovation Value Calculator (Evan and Anthony)
 
-```{r}
-# Will need to know what features are most associated with sale price
+```{r, cache = T}
 # Look up average renovation costs; create kitchen/bath flags
 # https://www.businessinsider.com/home-renovation-cost-each-room-2019-6
-# Add bathroom
-# Remodel kitchen (check kitchen quality?)
-
+# https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.
 reno_value = function(upgrade = c('add_bathroom', 'remodel_kitchen',
-                                  'finish_basement', 'replace_roof')) {
-  # Confirm upgrade
+                                  'finish_basement', 'replace_roof'),
+                      budget = c('low', 'medium', 'high')) {
+  
+  # # Confirm upgrade and budget args; otherwise throw an error
   upgrade = tryCatch(
     match.arg(upgrade, choices = c('add_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
                       several.ok = T),
     error = identity
   )
-
-  # Check that the upgrades can be completed 
+  budget = tryCatch(
+    match.arg(budget, choices = c('low', 'medium', 'high'), several.ok = F),
+    error = identity
+  )
   
-  
-  # Return the new dataframe with cost and value estimates
-  df = data.frame(est_cost = NA_real_, est_value = NA_real_)
-  print(upgrade)
-  if(str_detect(upgrade, "Error")) {
-    return(message(upgrade))
+  # Handle errors
+  if(str_detect(upgrade, "Error") | str_detect(budget, "Error")) {
+      suppressWarnings(return(message(upgrade)))
+      break()
   } else {
-    return(df)
+    # Update data based on stated upgrades
+    remodeled_housing = mutate(housing, Reno.Cost = 0)
+    
+    # Add bathroom
+    if('add_bathroom' %in% upgrade) {
+      remodeled_housing = mutate(
+        remodeled_housing,
+        budget = budget,
+        Reno.Cost = case_when(
+          budget == 'low' ~ Reno.Cost + 5957,
+          budget == 'medium' ~ Reno.Cost + 10349,
+          budget == 'high' ~ Reno.Cost + 14833,
+          T ~ Reno.Cost
+        ),
+        Full.Bath = Full.Bath + 1,
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Remodel kitchen
+    if('remodel_kitchen' %in% upgrade) {
+      message('Note: Remodeling kitchens that are already of excellent quality (i.e., "Ex") will not increase the estimated sale price.')
+      remodeled_housing = mutate(
+        remodeled_housing,
+        Reno.Cost = case_when(
+          Kitchen.Qual == 'Ex' ~ Reno.Cost,
+          budget == 'low' ~ Reno.Cost + 12557,
+          budget == 'medium' ~ Reno.Cost + 23556,
+          budget == 'high' ~ Reno.Cost + 34789,
+          T ~ Reno.Cost
+        ),
+        Kitchen.Qual = case_when(
+          Kitchen.Qual == 'Gd' ~ 'Ex',
+          Kitchen.Qual == "TA" & budget == 'low' ~ 'Gd',
+          Kitchen.Qual == "TA" ~ 'Ex',
+          Kitchen.Qual == 'Fa' & budget == 'low' ~ "TA",
+          Kitchen.Qual == 'Fa' & budget == 'medium' ~ "Gd",
+          Kitchen.Qual == 'Fa' & budget == 'high' ~ 'Ex',
+          Kitchen.Qual == 'Po' & budget == 'low' ~ 'Fa',
+          Kitchen.Qual == 'Po' & budget == 'medium' ~ "TA",
+          Kitchen.Qual == 'Po' & budget == 'high' ~ 'Gd',
+          T ~ Kitchen.Qual
+        ),
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Finish basement
+    if('finish_basement' %in% upgrade) {
+      message('Note: Properties without a basement obviously cannot have finished basements, so this renovation will not increase their estimated sale price.')
+      remodeled_housing = mutate(
+        remodeled_housing,
+        Reno.Cost = case_when(
+          Bsmt.Cond %in% c("DNE", '') ~ Reno.Cost,
+          budget == 'low' ~ Reno.Cost + 0.75 * 15000,
+          budget == 'medium' ~ Reno.Cost + 15000,
+          budget == 'high' ~ Reno.Cost + 1.25 * 15000,
+          T ~ Reno.Cost
+        ),
+        BsmtFin.Type.1 = case_when(
+          Bsmt.Cond %in% c("DNE", '') ~ BsmtFin.Type.1,
+          budget == 'low' ~ "BLQ",
+          budget == 'medium' ~ "ALQ",
+          budget == 'high' ~ "GLQ",
+          T ~ BsmtFin.Type.1
+        ),
+        BsmtFin.SF.1 = BsmtFin.SF.1 + Bsmt.Unf.SF,
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Replace roof
+    if('replace_roof' %in% upgrade) {
+      remodeled_housing = mutate(
+        remodeled_housing,
+        Reno.Cost = case_when(
+          budget == 'low' ~ Reno.Cost + 5100,
+          budget == 'medium' ~ Reno.Cost + 10000,
+          budget == 'high' ~ Reno.Cost + 15000,
+          T ~ Reno.Cost
+        ),
+        Exter.Cond = case_when(
+          Exter.Cond == 'Gd' ~ 'Ex',
+          Exter.Cond == "TA" & budget == 'low' ~ 'Gd',
+          Exter.Cond == "TA" ~ 'Ex',
+          Exter.Cond == "Fa" & budget == 'low' ~ "TA",
+          Exter.Cond == "Fa" & budget == 'medium' ~ 'Gd',
+          Exter.Cond == "Fa" & budget == 'high' ~ 'Ex',
+          Exter.Cond == "Po" & budget == 'low' ~ "Fa",
+          Exter.Cond == "Po" & budget == 'medium' ~ "TA",
+          Exter.Cond == "Po" & budget == 'high' ~ 'Gd',
+          T ~ Exter.Cond
+        ),
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Predict based on new features
+    costs_benefits = tibble(
+      orig_predicted_sale_price = as.numeric(lasso_pred),
+      new_predicted_sale_price = predict(
+        boost_model, 
+        newdata = remodeled_housing[remodeled_housing$Yr.Sold == 2010, ],
+        n.trees = 5000
+      ),
+      remodeling_costs = remodeled_housing[remodeled_housing$Yr.Sold == 2010,
+                                           'Reno.Cost'],
+      net = new_predicted_sale_price - orig_predicted_sale_price - remodeling_costs
+    ) 
+    
+    # Return costs and predictions
+    return(list(remodeled_housing = remodeled_housing,
+                costs_benefits = costs_benefits))
   }
 }
+
+reno_value('add_bathroom', 'high')
 
 # Apply it to listings in the 2010 data where some of these improvements are possible.    Are there any cases where you would recommend particular home improvements to the clients?  For this question you will want to look up typical costs for these types of renovations. 
 ```
