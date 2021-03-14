@@ -1,0 +1,569 @@
+---
+title: "Final_Project_GroupC"
+author: "Kramer, Rashid, and Stone"
+date: "3/8/2021"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Preamble: Loading packages and data
+
+```{r, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggcorrplot)
+library(ISLR)
+library(partykit)
+library(caret)
+library(rpart)
+library(randomForest)
+library(pROC)
+library(leaps)
+library(glmnet)
+library(gbm)
+```
+
+### Import and Initial Data Prep
+### Be sure to set working directory to source file location
+
+```{r}
+#bring in housing data
+housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
+
+#check for NAs
+sum(is.na(housing))
+
+ 
+# #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
+# Bsmt.Full.Bath
+# Bsmt.Half.Bath
+#Garage.Yr.Blt data is a Year value may need to be adjusted.
+#Mas.Vnr.Area
+
+DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
+zero.Cols = c(49,50,5,61,63,64,28)
+zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
+
+for (i in DNE.Cols){
+  housing[[i]][is.na(housing[[i]])] = "DNE"
+}
+
+for (i in zero.Cols){
+  housing[[i]][is.na(housing[[i]])] = 0
+}
+
+for (i in zero.Cols.alt){
+  housing[[i]][is.na(housing[[i]])] = 0
+}
+
+#verify NAs
+sum(is.na(housing))
+
+```
+
+
+### 1. Exploratory Data Analysis (Anthony w/ assistance)
+
+#### Identify general trends in sales prices across time, neighbourhood, and home characteristics
+
+```{r}
+
+col.vector = seq(2, 81, by=1) #We do not need the iOrder or PID value
+
+# for (i in col.vector){
+#   
+#   plots<-ggplot(data = housing,
+#               aes(x=SalePrice,y=housing[[i]]))+
+#   geom_line()+
+#   geom_point(x=which.max(housing[[i]]),
+#               y=max(housing[[i]]),aes(color="red"),
+#               show.legend = FALSE)+
+#   xlab("# Variables")+
+#   ylab("R-squared")+
+#   theme_bw()
+#   print(plots)
+# 
+# }
+
+# for (i in col.vector){
+#   
+#   plots<-ggplot(data = housing,
+#               aes(x=housing[[i]],y=SalePrice))+
+#   geom_line()+
+#   geom_point(x=which.max(housing$SalePrice),
+#               y=max(housing$SalePrice),aes(color="red"),
+#               show.legend = FALSE)+
+#   xlab("# Variables")+
+#   ylab("R-squared")+
+#   theme_bw()
+#   print(plots)
+# 
+# }
+
+numeric.df <-housing[unlist(lapply(housing, is.numeric)) ]
+numeric.cols <- numeric.df[,-1:-2]
+numeric.cols.vec <- seq(1, ncol(numeric.cols), by=1)
+for (i in numeric.cols.vec){
+  plots<- qplot(data = housing, x = numeric.cols[,i], y = SalePrice,
+        xlab = paste(colnames(numeric.cols)[i]) , ylab = "SalePrice") + stat_smooth(method = "lm")
+  print(plots)
+  
+}
+
+
+cor.housing.sales <- cor(numeric.df[,-1:-2])
+ggcorrplot(cor.housing.sales)
+
+```
+Once the dataset has been scrubbed, initial exploratory data analysis is conducted. The first analysis is looking at all numeric vectors in the dataset and checking to see if there are any correlations between variables.
+Correlations:
+Total.Bsmt.SF   ~   X1st.Flr.SF     (0.80)
+Gr.Liv.Area     ~   TotRms.AbvGrd   (0.81)
+Garage.Cars     ~   Garage.Area     (0.89)
+
+### 2. Sales Price Prediction Model (Khadija w/ assistance)
+> Tip: think about performance metrics other than MSE: MAE, relative error, etc.
+
+#### A predictive model that uses housing sale prices 2006-2009. 
+
+#####  Model 1 (Khadija)
+```{r}
+
+#Code Here
+
+```
+
+##### Model 2 (Khadija)
+```{r}
+
+#Code Here
+
+```
+
+##### Model 3 (Evan)
+```{r, cache = T}
+# Forward and backward stepwise (best subset will be too time-intensive)
+nvmax = 1000 #ncol(housing)
+model = map(
+  .x = c('forward', 'backward'),
+  .f = ~regsubsets(SalePrice ~ .,
+           data = housing[housing$Yr.Sold != 2010, ],
+           nvmax = nvmax, method = .x, really.big = F)
+)
+
+# Find optimal models
+for(.x in 1:2) {
+  num_variables = 1:length(summary(model[[.x]])$rss)
+  # R^2
+  plot_RSQ = ggplot(data = data.frame(summary(model[[.x]])$rsq),
+                    aes(x = num_variables, y = summary(model[[.x]])$rsq)) +
+    geom_line() +
+    geom_point(x = which.max(summary(model[[.x]])$rsq),
+               y = max(summary(model[[.x]])$rsq), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("R-squared") +
+    theme_bw()
+  # RSS
+  plot_RSS = ggplot(data = data.frame(summary(model[[.x]])$rss),
+                    aes(x = num_variables, y = summary(model[[.x]])$rss)) +
+    geom_line() +
+    geom_point(x = which.min(summary(model[[.x]])$rss),
+               y = min(summary(model[[.x]])$rss), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("RSS") +
+    theme_bw()
+  # BIC
+  plot_BIC = ggplot(data = data.frame(summary(model[[.x]])$bic),
+                    aes(x = num_variables, y = summary(model[[.x]])$bic)) +
+    geom_line() +
+    geom_point(x = which.min(summary(model[[.x]])$bic),
+               y = min(summary(model[[.x]])$bic), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("BIC") +
+    ggtitle("BIC", 
+            str_c("Optimal value at ", which.min(summary(model[[.x]])$bic))) + 
+    theme_bw()
+  # AIC
+  plot_AIC = ggplot(data = data.frame(summary(model[[.x]])$cp),
+                    aes(x = num_variables, y = summary(model[[.x]])$cp)) +
+    geom_line() +
+    geom_point(x = which.min(summary(model[[.x]])$cp),
+               y = min(summary(model[[.x]])$cp), aes(color = "red"),
+               show.legend = FALSE) +
+    xlab("# Variables") +
+    ylab("AIC") +
+    ggtitle("AIC", 
+            str_c("Optimal value at ", which.min(summary(model[[.x]])$cp))) + 
+    theme_bw()
+  # Plot
+  gridExtra::grid.arrange(plot_RSQ, plot_RSS, plot_AIC, plot_BIC, 
+                           ncol = 2, nrow = 2)
+}
+
+# Get predictions from optimal models
+model_coef = map(1:2, 
+                 ~coef(model[[.x]], which.min(summary(model[[.x]])$bic)))
+temp = bind_rows(
+  tibble(method = 'forward', var = names(model_coef[[1]]), 
+         coef = model_coef[[1]], varmatch = NA_character_),
+  tibble(method = 'backward', var = names(model_coef[[2]]), 
+         coef = model_coef[[2]], varmatch = NA_character_)
+) 
+
+# Try to figure out programmatically which variables are in the models
+for(r in 1:nrow(temp)) {
+  if(temp$method[r] == 'forward') {
+    potential_names = names(housing)[agrepl(names(model_coef[[1]][r]),
+                                            names(housing), 
+                                            max.distance = 0.2)]
+  } else {
+    potential_names = names(housing)[agrepl(names(model_coef[[2]][r]),
+                                            names(housing),
+                                            max.distance = 0.2)]
+  }
+  if(length(potential_names) == 0) {
+    varmatch = NA_character_
+  } else if(length(potential_names) == 1) {
+    varmatch = potential_names
+  } else {
+    varmatch = str_flatten(
+      intersect(
+        unlist(strsplit(potential_names, '')), 
+        unlist(strsplit(potential_names, ''))
+      )
+    )
+  }
+  temp$varmatch[r] = varmatch
+}
+
+# Refit: Forward
+forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Shape', 'Lot.Config',
+                       'Land.Slope', 'Neighborhood', 'Condition.1',
+                       'Condition.2', 'Bldg.Type', 'Overall.Qual',
+                       'Overall.Cond', 'Year.Built', 'Roof.Matl', 
+                       'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual',
+                       'Foundation', 'Bsmt.Qual', 'BsmtFin.Type.1',
+                       'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
+                       'TotRms.AbvGrd', 'Functional', 'Fireplaces', 
+                       'Fireplace.Qu', 'Garage.Type', 'Garage.Qual',
+                       'Paved.Drive', 'Open.Porch.SF', 'Misc.Feature',
+                       'Misc.Val', 'Mo.Sold', 'Yr.Sold', 'Sale.Type',
+                       'BsmtFin.Type.1', 'Garage.Finish', 'Garage.Cond')
+forward_pred = predict(
+  lm(formula(paste('SalePrice ~', str_flatten(forward_predictors, "+"))), 
+     data = housing), #[housing$Yr.Sold != 2010, ]),
+  housing[housing$Yr.Sold == 2010, ]
+)
+
+# Refit: Backward
+backward_predictors = c('MS.SubClass', 'MS.Zoning', 'Lot.Area', 'Land.Contour',
+                        'Neighborhood', 'Condition.1', 'Condition.2',
+                        'Bldg.Type', 'Overall.Qual', 'Overall.Cond', 
+                        'Year.Built', 'Year.Remod.Add', 'Roof.Matl', 
+                        'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual', 
+                        'Exter.Cond', 'Bsmt.Qual', 'BsmtFin.Type.1', 
+                        'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
+                        'Functional', 'Fireplaces', 'Fireplace.Qu', 
+                        'Garage.Type', 'Garage.Qual', 'Paved.Drive', 
+                        'Open.Porch.SF', 'Pool.QC', 'Misc.Feature', 'Mo.Sold',
+                        'Sale.Type', 'BsmtFin.Type.1', 'Garage.Cond')
+backward_pred = predict(
+  lm(formula(paste('SalePrice ~', str_flatten(backward_predictors, "+"))), 
+     data = housing), #[housing$Yr.Sold != 2010, ]),
+  housing[housing$Yr.Sold == 2010, ]
+)
+```
+
+##### Model 4 (Evan)
+```{r, cache = T}
+# GLM
+glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
+names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
+
+# Lasso
+# Define x and y objects for Lasso, as well as specifying training data
+x = model.matrix(SalePrice ~ ., housing)[, -1]
+y = housing$SalePrice
+train = which(housing$Yr.Sold != 2010)
+# Fit and plot model
+lasso_model = cv.glmnet(x[train, ], y[train], alpha = 1)
+plot(lasso_model)
+# Find min and 1SE values of lambda
+lasso_model$lambda.min; lasso_model$lambda.1se
+lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se, 
+                     newx = x[-train, ])
+# Refit model and find non-zero coefficients
+lasso_model_coef = map(
+  .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
+  .f = ~predict(glmnet(x, y, alpha = 1), s = .x, type = 'coefficients')
+)
+
+# Tree-based and boosted models
+boost_model = gbm(SalePrice ~ ., 
+                  data = mutate_if(housing, is.character, as.factor)[housing$Yr.Sold != 2010, ],
+                  distribution = 'gaussian', 
+                  n.trees = 5000,
+                  cv.folds = 10,
+                  shrinkage = 0.1,
+                  interaction.depth = 4)
+summary(boost_model)
+for(.x in 1:5) {
+  plot(boost_model, i = summary(boost_model)[.x, 'var'])
+}
+boost_pred = predict(boost_model, 
+                     newdata = housing[housing$Yr.Sold == 2010, ],
+                     n.trees = 5000)
+```
+
+##### Model 5 (Anthony)
+```{r}
+
+#Code Here
+
+```
+
+#### Performance is evaluated against *appropriate validation methods*. (Evan)
+
+```{r, cache = T}
+# Create performance_metrics function
+performance_metrics = function(actual, predicted, plot = T) {
+  # Check that actual and predicted values are the same length
+  if(length(actual) != length(predicted)) {
+    message("'actual' and 'predicted' vectors must be the same length.")
+  } else {
+    # Initialize list
+    list = list()
+    
+    # Compute metrics (MSE, RMSE, MAE, relative error)
+    mse = mean((actual - predicted)^2)
+    mae = mean(abs(actual - predicted))
+    rel_error = mean((predicted - actual) / actual)
+    
+    # Plot
+    if(plot) {
+      barplot = ggplot(data = tibble(mse, mae, rel_error) %>% 
+                      pivot_longer(cols = everything(),
+                                   names_to = 'performance_metric',
+                                   values_to = 'metric_score'),
+                    aes(x = performance_metric, y = metric_score)) + 
+        geom_bar(stat = 'identity') + 
+        geom_text(aes(label = round(metric_score, 3))) + 
+        xlab("Metric") +
+        scale_y_continuous(
+          # limits = c(min(mse, mae, rel_error),
+                     # max(mse, mae, rel_error) /
+                       # sd(c(mse, mae, rel_error))),
+          name = "Score"
+        ) +
+        theme_bw()
+      scatter = ggplot(data = tibble(actual = actual, 
+                                     predicted = predicted), 
+                       aes(x = actual, y = predicted)) + 
+        geom_point(aes(size = abs(actual - predicted)), alpha = 0.4) + 
+        xlab("Actual") + 
+        ylab("Predicted") + 
+        geom_abline(slope = 1, intercept = 0, col = 'red') + 
+        theme_bw()
+      # Return objects
+      return(list(metrics = data.frame(mse = mse, mae = mae,
+                                     rel_error = rel_error),
+                barplot = barplot,
+                scatter = scatter))
+    } else {
+      return(list(metrics = data.frame(mse = mse, mae = mae,
+                                     rel_error = rel_error)))
+    }
+  }
+}
+```
+
+#### Compare estimated prediction accuracy against actual performance of 2010 data.(Evan)
+
+```{r}
+# Use performance_metrics function defined above for all models
+
+```
+
+
+### 3. Home Features that are most Predictive of Sales Price.(Anthony)
+
+```{r}
+
+#Code Here
+ 
+```
+
+#### The Above Features Relation to Sales Price? (Anthony)
+
+```{r}
+
+#Code Here
+
+```
+
+### 4. Model's accracy across neighbourhoods (geographic variance) (Khadija)
+
+```{r}
+
+#Code Here
+
+```
+
+### 5. Renovation Value Calculator (Evan and Anthony)
+
+```{r, cache = T}
+# Look up average renovation costs; create kitchen/bath flags
+# https://www.businessinsider.com/home-renovation-cost-each-room-2019-6
+# https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.
+reno_value = function(upgrade = c('add_bathroom', 'remodel_kitchen',
+                                  'finish_basement', 'replace_roof'),
+                      budget = c('low', 'medium', 'high')) {
+  
+  # # Confirm upgrade and budget args; otherwise throw an error
+  upgrade = tryCatch(
+    match.arg(upgrade, choices = c('add_bathroom', 'remodel_kitchen',
+                                  'finish_basement', 'replace_roof'),
+                      several.ok = T),
+    error = identity
+  )
+  budget = tryCatch(
+    match.arg(budget, choices = c('low', 'medium', 'high'), several.ok = F),
+    error = identity
+  )
+  
+  # Handle errors
+  if(str_detect(upgrade, "Error") | str_detect(budget, "Error")) {
+      suppressWarnings(return(message(upgrade)))
+      break()
+  } else {
+    # Update data based on stated upgrades
+    remodeled_housing = mutate(housing, Reno.Cost = 0)
+    
+    # Add bathroom
+    if('add_bathroom' %in% upgrade) {
+      remodeled_housing = mutate(
+        remodeled_housing,
+        budget = budget,
+        Reno.Cost = case_when(
+          budget == 'low' ~ Reno.Cost + 5957,
+          budget == 'medium' ~ Reno.Cost + 10349,
+          budget == 'high' ~ Reno.Cost + 14833,
+          T ~ Reno.Cost
+        ),
+        Full.Bath = Full.Bath + 1,
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Remodel kitchen
+    if('remodel_kitchen' %in% upgrade) {
+      message('Note: Remodeling kitchens that are already of excellent quality (i.e., "Ex") will not increase the estimated sale price.')
+      remodeled_housing = mutate(
+        remodeled_housing,
+        Reno.Cost = case_when(
+          Kitchen.Qual == 'Ex' ~ Reno.Cost,
+          budget == 'low' ~ Reno.Cost + 12557,
+          budget == 'medium' ~ Reno.Cost + 23556,
+          budget == 'high' ~ Reno.Cost + 34789,
+          T ~ Reno.Cost
+        ),
+        Kitchen.Qual = case_when(
+          Kitchen.Qual == 'Gd' ~ 'Ex',
+          Kitchen.Qual == "TA" & budget == 'low' ~ 'Gd',
+          Kitchen.Qual == "TA" ~ 'Ex',
+          Kitchen.Qual == 'Fa' & budget == 'low' ~ "TA",
+          Kitchen.Qual == 'Fa' & budget == 'medium' ~ "Gd",
+          Kitchen.Qual == 'Fa' & budget == 'high' ~ 'Ex',
+          Kitchen.Qual == 'Po' & budget == 'low' ~ 'Fa',
+          Kitchen.Qual == 'Po' & budget == 'medium' ~ "TA",
+          Kitchen.Qual == 'Po' & budget == 'high' ~ 'Gd',
+          T ~ Kitchen.Qual
+        ),
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Finish basement
+    if('finish_basement' %in% upgrade) {
+      message('Note: Properties without a basement obviously cannot have finished basements, so this renovation will not increase their estimated sale price.')
+      remodeled_housing = mutate(
+        remodeled_housing,
+        Reno.Cost = case_when(
+          Bsmt.Cond %in% c("DNE", '') ~ Reno.Cost,
+          budget == 'low' ~ Reno.Cost + 0.75 * 15000,
+          budget == 'medium' ~ Reno.Cost + 15000,
+          budget == 'high' ~ Reno.Cost + 1.25 * 15000,
+          T ~ Reno.Cost
+        ),
+        BsmtFin.Type.1 = case_when(
+          Bsmt.Cond %in% c("DNE", '') ~ BsmtFin.Type.1,
+          budget == 'low' ~ "BLQ",
+          budget == 'medium' ~ "ALQ",
+          budget == 'high' ~ "GLQ",
+          T ~ BsmtFin.Type.1
+        ),
+        BsmtFin.SF.1 = BsmtFin.SF.1 + Bsmt.Unf.SF,
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Replace roof
+    if('replace_roof' %in% upgrade) {
+      remodeled_housing = mutate(
+        remodeled_housing,
+        Reno.Cost = case_when(
+          budget == 'low' ~ Reno.Cost + 5100,
+          budget == 'medium' ~ Reno.Cost + 10000,
+          budget == 'high' ~ Reno.Cost + 15000,
+          T ~ Reno.Cost
+        ),
+        Exter.Cond = case_when(
+          Exter.Cond == 'Gd' ~ 'Ex',
+          Exter.Cond == "TA" & budget == 'low' ~ 'Gd',
+          Exter.Cond == "TA" ~ 'Ex',
+          Exter.Cond == "Fa" & budget == 'low' ~ "TA",
+          Exter.Cond == "Fa" & budget == 'medium' ~ 'Gd',
+          Exter.Cond == "Fa" & budget == 'high' ~ 'Ex',
+          Exter.Cond == "Po" & budget == 'low' ~ "Fa",
+          Exter.Cond == "Po" & budget == 'medium' ~ "TA",
+          Exter.Cond == "Po" & budget == 'high' ~ 'Gd',
+          T ~ Exter.Cond
+        ),
+        Year.Remod.Add = 2010
+      )
+    }
+    
+    # Predict based on new features
+    costs_benefits = tibble(
+      orig_predicted_sale_price = as.numeric(lasso_pred),
+      new_predicted_sale_price = predict(
+        boost_model, 
+        newdata = remodeled_housing[remodeled_housing$Yr.Sold == 2010, ],
+        n.trees = 5000
+      ),
+      remodeling_costs = remodeled_housing[remodeled_housing$Yr.Sold == 2010,
+                                           'Reno.Cost'],
+      net = new_predicted_sale_price - orig_predicted_sale_price - remodeling_costs
+    ) 
+    
+    # Return costs and predictions
+    return(list(remodeled_housing = remodeled_housing,
+                costs_benefits = costs_benefits))
+  }
+}
+
+reno_value('add_bathroom', 'high')
+
+# Apply it to listings in the 2010 data where some of these improvements are possible.    Are there any cases where you would recommend particular home improvements to the clients?  For this question you will want to look up typical costs for these types of renovations. 
+```
