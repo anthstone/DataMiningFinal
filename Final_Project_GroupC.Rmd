@@ -53,7 +53,7 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 if (sum(is.na(housing)) >0) {
   
   DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30)
-  zero.Cols = c(3, 49,50,5,61,63,64,28)
+  zero.Cols = c(3, 5, 49,50,61,63,64,28)
   zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
   catchall.cols = seq(1, 82, by=1)
   
@@ -81,7 +81,11 @@ if (sum(is.na(housing)) >0) {
 ```{r}
 sum(is.na(housing))
 
+#Show columns that have at least one NA
 housing[, colSums(is.na(housing)) > 0]
+
+#Show rowss that have at least one NA
+housing[rowSums(is.na(housing)) > 0,]
 
 ```
 
@@ -159,6 +163,9 @@ for (i in qual.cols.vec){
   print(boxplots)
   
 }
+
+#Note all variables that are used in models, so we can retain their box plots:
+
 
 ```
 
@@ -317,11 +324,14 @@ names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 
 # Lasso [Primary]
 # Define x and y objects for Lasso, as well as specifying training data
+train = which(housing$Yr.Sold != 2010)
 x = model.matrix(SalePrice ~ ., housing)[, -1]
 y = housing$SalePrice
-train = which(housing$Yr.Sold != 2010)
+x.train = x[row_number(train), ]
+y.train = y[]
 # Fit and plot model
-lasso_model = cv.glmnet(x[train, ], y[train], alpha = 1)
+#lasso_model = cv.glmnet(x[train, ], y[train], alpha = 1)
+lasso_model = cv.glmnet(x.train, y[train], alpha = 1)
 plot(lasso_model)
 # Find min and 1SE values of lambda
 lasso_model$lambda.min; lasso_model$lambda.1se
