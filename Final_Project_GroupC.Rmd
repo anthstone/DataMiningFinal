@@ -72,10 +72,18 @@ if (sum(is.na(housing)) >0) {
 }
 
 ```
+
 ###Factors reorder (Anthony)
 ```{r}
-#= factor(var, levels = c('Po', 'Fa', 'TA', 'Gd', 'Ex'))
-
+housing$Exter.Cond <- factor(housing$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Exter.Qual <- factor(housing$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
+housing$Bsmt.Qual <- factor(housing$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Bsmt.Cond <- factor(housing$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Kitchen.Qual <- factor(housing$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Fireplace.Qu <- factor(housing$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Garage.Cond <- factor(housing$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Garage.Qual <- factor(housing$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Pool.QC <- factor(housing$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 
 ```
 
@@ -117,6 +125,15 @@ Garage.Cars     ~   Garage.Area     (0.89)
 
 ###Box Plots of quals (Anthony)
 ```{r}
+
+
+qual.cols.vec <-  c(29, 30, 32, 33)
+for (i in qual.cols.vec){
+  boxplots <- qplot(data = housing, x = housing[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing)[i]))
+  print(boxplots)
+  
+}
+
 
 ```
 
@@ -435,12 +452,12 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 I am going to write a bit about the calculator
 What it does
-Data sources
+Data sources:
+Room Renovation Costs [Business Insider](https://www.businessinsider.com/home-renovation-cost-each-room-2019-6)
+Roof Renovation Cost [Super Storm Restoration](https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.)
 Next block will be for using the calculator and give instructions
 ```{r, cache = T}
-# Look up average renovation costs; create kitchen/bath flags
-# https://www.businessinsider.com/home-renovation-cost-each-room-2019-6
-# https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.
+
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
                       budget = c('low', 'medium', 'high')) { #Evan fix to allow null renovation and one budget type
