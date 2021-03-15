@@ -52,7 +52,7 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 
 if (sum(is.na(housing)) >0) {
   
-  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
+  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30)
   zero.Cols = c(49,50,5,61,63,64,28)
   zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
   
@@ -84,6 +84,7 @@ housing$Fireplace.Qu <- factor(housing$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa
 housing$Garage.Cond <- factor(housing$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 housing$Garage.Qual <- factor(housing$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 housing$Pool.QC <- factor(housing$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Heating.QC <- factor(housing$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 
 ```
 
@@ -127,7 +128,7 @@ Garage.Cars     ~   Garage.Area     (0.89)
 ```{r}
 
 
-qual.cols.vec <-  c(29, 30, 32, 33)
+qual.cols.vec <-  c(29, 30, 32, 33, 42, 55, 59, 65, 66, 74)
 for (i in qual.cols.vec){
   boxplots <- qplot(data = housing, x = housing[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing)[i]))
   print(boxplots)
