@@ -55,6 +55,7 @@ if (sum(is.na(housing)) >0) {
   DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30)
   zero.Cols = c(3, 49,50,5,61,63,64,28)
   zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
+  catchall.cols = seq(1, 82, by=1)
   
   for (i in DNE.Cols){
     housing[[i]][is.na(housing[[i]])] = "DNE"
@@ -65,6 +66,10 @@ if (sum(is.na(housing)) >0) {
   }
   
   for (i in zero.Cols.alt){
+    housing[[i]][is.na(housing[[i]])] = 0
+  }
+  
+  for (i in catchall.cols){
     housing[[i]][is.na(housing[[i]])] = 0
   }
   #Verify NAs are removed
