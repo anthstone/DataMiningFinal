@@ -81,6 +81,8 @@ if (sum(is.na(housing)) >0) {
 ```{r}
 sum(is.na(housing))
 
+housing[, colSums(is.na(housing)) > 0]
+
 ```
 
 ###Factors reorder (Anthony)
