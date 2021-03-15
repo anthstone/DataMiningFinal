@@ -73,6 +73,11 @@ if (sum(is.na(housing)) >0) {
 
 ```
 
+```{r}
+sum(is.na(housing))
+
+```
+
 ###Factors reorder (Anthony)
 ```{r}
 housing$Exter.Cond <- factor(housing$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
