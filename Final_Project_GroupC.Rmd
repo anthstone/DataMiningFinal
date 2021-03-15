@@ -35,39 +35,50 @@ library(gbm)
 ### Be sure to set working directory to source file location
 
 ```{r}
+
 #bring in housing data
 housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 
-#check for NAs
-sum(is.na(housing))
+```
 
- 
+### Preparing Dataset for Analysis
+#### Removing NA values from dataset
+```{r}
 # #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
 # Bsmt.Full.Bath
 # Bsmt.Half.Bath
 #Garage.Yr.Blt data is a Year value may need to be adjusted.
 #Mas.Vnr.Area
 
-DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
-zero.Cols = c(49,50,5,61,63,64,28)
-zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
-
-for (i in DNE.Cols){
-  housing[[i]][is.na(housing[[i]])] = "DNE"
+if (sum(is.na(housing)) >0) {
+  
+  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60)
+  zero.Cols = c(49,50,5,61,63,64,28)
+  zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
+  
+  for (i in DNE.Cols){
+    housing[[i]][is.na(housing[[i]])] = "DNE"
+  }
+  
+  for (i in zero.Cols){
+    housing[[i]][is.na(housing[[i]])] = 0
+  }
+  
+  for (i in zero.Cols.alt){
+    housing[[i]][is.na(housing[[i]])] = 0
+  }
+  #Verify NAs are removed
+  sum(is.na(housing))
 }
-
-for (i in zero.Cols){
-  housing[[i]][is.na(housing[[i]])] = 0
-}
-
-for (i in zero.Cols.alt){
-  housing[[i]][is.na(housing[[i]])] = 0
-}
-
-#verify NAs
-sum(is.na(housing))
 
 ```
+###Factors reorder (Anthony)
+```{r}
+#= factor(var, levels = c('Po', 'Fa', 'TA', 'Gd', 'Ex'))
+
+
+```
+
 
 
 ### 1. Exploratory Data Analysis (Anthony w/ assistance)
@@ -78,35 +89,6 @@ sum(is.na(housing))
 
 col.vector = seq(2, 81, by=1) #We do not need the iOrder or PID value
 
-# for (i in col.vector){
-#   
-#   plots<-ggplot(data = housing,
-#               aes(x=SalePrice,y=housing[[i]]))+
-#   geom_line()+
-#   geom_point(x=which.max(housing[[i]]),
-#               y=max(housing[[i]]),aes(color="red"),
-#               show.legend = FALSE)+
-#   xlab("# Variables")+
-#   ylab("R-squared")+
-#   theme_bw()
-#   print(plots)
-# 
-# }
-
-# for (i in col.vector){
-#   
-#   plots<-ggplot(data = housing,
-#               aes(x=housing[[i]],y=SalePrice))+
-#   geom_line()+
-#   geom_point(x=which.max(housing$SalePrice),
-#               y=max(housing$SalePrice),aes(color="red"),
-#               show.legend = FALSE)+
-#   xlab("# Variables")+
-#   ylab("R-squared")+
-#   theme_bw()
-#   print(plots)
-# 
-# }
 
 numeric.df <-housing[unlist(lapply(housing, is.numeric)) ]
 numeric.cols <- numeric.df[,-1:-2]
@@ -117,7 +99,10 @@ for (i in numeric.cols.vec){
   print(plots)
   
 }
+```
 
+####Correlation Plot
+```{r}
 
 cor.housing.sales <- cor(numeric.df[,-1:-2])
 ggcorrplot(cor.housing.sales)
@@ -129,26 +114,19 @@ Total.Bsmt.SF   ~   X1st.Flr.SF     (0.80)
 Gr.Liv.Area     ~   TotRms.AbvGrd   (0.81)
 Garage.Cars     ~   Garage.Area     (0.89)
 
+
+###Box Plots of quals (Anthony)
+```{r}
+
+```
+
+
 ### 2. Sales Price Prediction Model (Khadija w/ assistance)
 > Tip: think about performance metrics other than MSE: MAE, relative error, etc.
 
 #### A predictive model that uses housing sale prices 2006-2009. 
 
-#####  Model 1 (Khadija)
-```{r}
-
-#Code Here
-
-```
-
-##### Model 2 (Khadija)
-```{r}
-
-#Code Here
-
-```
-
-##### Model 3 (Evan)
+##### Forward and Backward Stepwise Model
 ```{r, cache = T}
 # Forward and backward stepwise (best subset will be too time-intensive)
 nvmax = 1000 #ncol(housing)
@@ -291,7 +269,11 @@ backward_pred = predict(
 glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 
-# Lasso
+```
+
+```{r}
+
+# Lasso [Primary]
 # Define x and y objects for Lasso, as well as specifying training data
 x = model.matrix(SalePrice ~ ., housing)[, -1]
 y = housing$SalePrice
@@ -309,7 +291,12 @@ lasso_model_coef = map(
   .f = ~predict(glmnet(x, y, alpha = 1), s = .x, type = 'coefficients')
 )
 
+
+```
+
 # Tree-based and boosted models
+```{r}
+
 boost_model = gbm(SalePrice ~ ., 
                   data = mutate_if(housing, is.character, as.factor)[housing$Yr.Sold != 2010, ],
                   distribution = 'gaussian', 
@@ -324,14 +311,9 @@ for(.x in 1:5) {
 boost_pred = predict(boost_model, 
                      newdata = housing[housing$Yr.Sold == 2010, ],
                      n.trees = 5000)
-```
-
-##### Model 5 (Anthony)
-```{r}
-
-#Code Here
 
 ```
+
 
 #### Performance is evaluated against *appropriate validation methods*. (Evan)
 
@@ -451,13 +433,17 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 ### 5. Renovation Value Calculator (Evan and Anthony)
 
+I am going to write a bit about the calculator
+What it does
+Data sources
+Next block will be for using the calculator and give instructions
 ```{r, cache = T}
 # Look up average renovation costs; create kitchen/bath flags
 # https://www.businessinsider.com/home-renovation-cost-each-room-2019-6
 # https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
-                      budget = c('low', 'medium', 'high')) {
+                      budget = c('low', 'medium', 'high')) { #Evan fix to allow null renovation and one budget type
   
   # # Confirm upgrade and budget args; otherwise throw an error
   upgrade = tryCatch(
@@ -592,7 +578,15 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
   }
 }
 
-reno_value('add_bathroom', 'high')
+
 
 # Apply it to listings in the 2010 data where some of these improvements are possible.    Are there any cases where you would recommend particular home improvements to the clients?  For this question you will want to look up typical costs for these types of renovations. 
+```
+
+
+###Using the Renovation Calculator
+```{r}
+
+reno_value('add_bathroom', 'high')
+
 ```
