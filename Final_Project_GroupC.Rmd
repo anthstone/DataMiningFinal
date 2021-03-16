@@ -95,18 +95,20 @@ housing[rowSums(is.na(housing)) > 0,]
 
 ###Factors reorder (Anthony)
 ```{r}
-housing$Exter.Cond <- factor(housing$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Exter.Qual <- factor(housing$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
-housing$Bsmt.Qual <- factor(housing$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Bsmt.Cond <- factor(housing$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Kitchen.Qual <- factor(housing$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Fireplace.Qu <- factor(housing$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Garage.Cond <- factor(housing$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Garage.Qual <- factor(housing$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Pool.QC <- factor(housing$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Heating.QC <- factor(housing$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors <- housing
 
-housing$MS.SubClass <- factor(housing$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
+housing.factors$Exter.Cond <- factor(housing.factors$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Exter.Qual <- factor(housing.factors$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
+housing.factors$Bsmt.Qual <- factor(housing.factors$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Bsmt.Cond <- factor(housing.factors$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Kitchen.Qual <- factor(housing.factors$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Fireplace.Qu <- factor(housing.factors$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Garage.Cond <- factor(housing.factors$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Garage.Qual <- factor(housing.factors$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+
+housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
 
 
 
@@ -156,7 +158,7 @@ Garage.Cars     ~   Garage.Area     (0.89)
 
 qual.cols.vec <-  c(29, 30, 32, 33, 42, 55, 59, 65, 66, 74)
 for (i in qual.cols.vec){
-  boxplots <- qplot(data = housing, x = housing[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing)[i]))
+  boxplots <- qplot(data = housing.factors, x = housing.factors[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing.factors)[i]))
   print(boxplots)
   
 }
@@ -165,7 +167,7 @@ qual.cols.vec <-  c(3, 4, 7, 8 , 9 , 10, 11, 12, 13, 14, 15, 16, 17,
                     18, 23, 24, 25, 26, 27, 31, 35, 37, 41, 44, 57,
                     60, 62, 67, 75, 76, 80, 81)
 for (i in qual.cols.vec){
-  boxplots <- qplot(data = housing, x = housing[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing)[i]))
+  boxplots <- qplot(data = housing.factors, x = housing.factors[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing.factors)[i]))
   print(boxplots)
   
 }
