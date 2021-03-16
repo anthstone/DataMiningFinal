@@ -68,10 +68,14 @@ if (sum(is.na(housing)) >0) {
   for (i in zero.Cols.alt){
     housing[[i]][is.na(housing[[i]])] = 0
   }
-  
-  for (i in catchall.cols){
-    housing[[i]][is.na(housing[[i]])] = 0
-  }
+   
+  # for (i in catchall.cols){
+  #   housing[[i]][housing[[i]]==""] <- NA
+  # }
+  # 
+  # for (i in catchall.cols){
+  #   housing[[i]][is.na(housing[[i]])] = 0
+  # }
   #Verify NAs are removed
   sum(is.na(housing))
 }
@@ -79,6 +83,7 @@ if (sum(is.na(housing)) >0) {
 ```
 
 ```{r}
+
 sum(is.na(housing))
 
 #Show columns that have at least one NA
@@ -86,7 +91,6 @@ housing[, colSums(is.na(housing)) > 0]
 
 #Show rowss that have at least one NA
 housing[rowSums(is.na(housing)) > 0,]
-
 ```
 
 ###Factors reorder (Anthony)
@@ -121,13 +125,15 @@ col.vector = seq(2, 81, by=1) #We do not need the iOrder or PID value
 
 numeric.df <-housing[unlist(lapply(housing, is.numeric)) ]
 numeric.cols <- numeric.df[,-1:-2]
-numeric.cols.vec <- seq(1, ncol(numeric.cols), by=1)
+numeric.cols.vec <- seq(1, ncol(numeric.cols))
 for (i in numeric.cols.vec){
   plots<- qplot(data = housing, x = numeric.cols[,i], y = SalePrice,
         xlab = paste(colnames(numeric.cols)[i]) , ylab = "SalePrice") + stat_smooth(method = "lm")
   print(plots)
   
 }
+
+
 ```
 
 ####Correlation Plot
@@ -327,11 +333,9 @@ names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 train = which(housing$Yr.Sold != 2010)
 x = model.matrix(SalePrice ~ ., housing)[, -1]
 y = housing$SalePrice
-x.train = x[row_number(train), ]
-y.train = y[]
+
 # Fit and plot model
-#lasso_model = cv.glmnet(x[train, ], y[train], alpha = 1)
-lasso_model = cv.glmnet(x.train, y[train], alpha = 1)
+lasso_model = cv.glmnet(x[train, ], y[train] , alpha = 1)
 plot(lasso_model)
 # Find min and 1SE values of lambda
 lasso_model$lambda.min; lasso_model$lambda.1se
@@ -340,7 +344,7 @@ lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se,
 # Refit model and find non-zero coefficients
 lasso_model_coef = map(
   .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
-  .f = ~predict(glmnet(x, y, alpha = 1), s = .x, type = 'coefficients')
+  .f = ~predict(glmnet(x, y ,alpha = 1), s = .x, type = 'coefficients')
 )
 
 
