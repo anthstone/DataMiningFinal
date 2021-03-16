@@ -14,13 +14,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Preamble: Loading packages and data
-
+# 0). Preamble: Loading Packages and Data; Data Preperation
+## a). Load Packages
 ```{r, message=FALSE}
 library(tidyverse)
 library(ggplot2)
 library(ggcorrplot)
-library(ISLR)
+library(knitr)   # contains kable() function
 library(partykit)
 library(caret)
 library(rpart)
@@ -31,18 +31,16 @@ library(glmnet)
 library(gbm)
 ```
 
-### Import and Initial Data Prep
-### Be sure to set working directory to source file location
+## b). Import and Initial Data Prep
+> Be sure to set working directory to source file location
 
 ```{r}
-
 #bring in housing data
 housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
-
 ```
 
-### Preparing Dataset for Analysis
-#### Removing NA values from dataset
+## c). Preparing Dataset for Analysis
+### i). Removing NA values from dataset
 ```{r}
 # #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
 # Bsmt.Full.Bath
@@ -81,7 +79,7 @@ if (sum(is.na(housing)) >0) {
 }
 
 ```
-
+#### ii). Verify absences of NA values
 ```{r}
 
 sum(is.na(housing))
@@ -93,7 +91,7 @@ housing[, colSums(is.na(housing)) > 0]
 housing[rowSums(is.na(housing)) > 0,]
 ```
 
-###Factors reorder (Anthony)
+### iii). Factors reorder
 ```{r}
 housing.factors <- housing
 
@@ -116,9 +114,9 @@ housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(0
 
 
 
-### 1. Exploratory Data Analysis (Anthony w/ assistance)
+# 1. Exploratory Data Analysis
 
-#### Identify general trends in sales prices across time, neighbourhood, and home characteristics
+## a). General Trends in Sales Prices Across Time, Neighbourhood, and Home Characteristics
 
 ```{r}
 
@@ -127,7 +125,7 @@ col.vector = seq(2, 81, by=1) #We do not need the iOrder or PID value
 
 numeric.df <-housing[unlist(lapply(housing, is.numeric)) ]
 numeric.cols <- numeric.df[,-1:-2]
-numeric.cols.vec <- seq(1, ncol(numeric.cols))
+numeric.cols.vec <- seq(1, ncol(numeric.cols)-1)
 for (i in numeric.cols.vec){
   plots<- qplot(data = housing, x = numeric.cols[,i], y = SalePrice,
         xlab = paste(colnames(numeric.cols)[i]) , ylab = "SalePrice") + stat_smooth(method = "lm")
@@ -138,21 +136,26 @@ for (i in numeric.cols.vec){
 
 ```
 
-####Correlation Plot
+## b). Correlation Plot
 ```{r}
 
 cor.housing.sales <- cor(numeric.df[,-1:-2])
 ggcorrplot(cor.housing.sales)
 
 ```
+
 Once the dataset has been scrubbed, initial exploratory data analysis is conducted. The first analysis is looking at all numeric vectors in the dataset and checking to see if there are any correlations between variables.
+
 Correlations:
+
 Total.Bsmt.SF   ~   X1st.Flr.SF     (0.80)
+
 Gr.Liv.Area     ~   TotRms.AbvGrd   (0.81)
+
 Garage.Cars     ~   Garage.Area     (0.89)
 
 
-###Box Plots of quals (Anthony)
+## c). Box Plots of quals
 ```{r}
 
 
@@ -178,12 +181,12 @@ for (i in qual.cols.vec){
 ```
 
 
-### 2. Sales Price Prediction Model (Khadija w/ assistance)
-> Tip: think about performance metrics other than MSE: MAE, relative error, etc.
+# 2. Sales Price Prediction Model (Khadija w/ assistance)
+Tip: think about performance metrics other than MSE: MAE, relative error, etc.
+> A predictive model that uses housing sale prices 2006-2009. 
 
-#### A predictive model that uses housing sale prices 2006-2009. 
-
-##### Forward and Backward Stepwise Model
+## a). Forward and Backward Stepwise Model
+### i). Finding the Optimal Stepwise Model
 ```{r, cache = T}
 # Forward and backward stepwise (best subset will be too time-intensive)
 nvmax = 1000 #ncol(housing)
@@ -245,7 +248,10 @@ for(.x in 1:2) {
   gridExtra::grid.arrange(plot_RSQ, plot_RSS, plot_AIC, plot_BIC, 
                            ncol = 2, nrow = 2)
 }
+```
 
+### ii). Predictions of the Optimal Model
+```{r}
 # Get predictions from optimal models
 model_coef = map(1:2, 
                  ~coef(model[[.x]], which.min(summary(model[[.x]])$bic)))
@@ -282,6 +288,10 @@ for(r in 1:nrow(temp)) {
   temp$varmatch[r] = varmatch
 }
 
+```
+
+### iii). Refitting Forward and Backaward Models
+```{r}
 # Refit: Forward
 forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Shape', 'Lot.Config',
                        'Land.Slope', 'Neighborhood', 'Condition.1',
@@ -320,7 +330,7 @@ backward_pred = predict(
 )
 ```
 
-##### Model 4 (Evan)
+## b). Generalized Linear Model
 ```{r, cache = T}
 # GLM
 glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
@@ -328,6 +338,7 @@ names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 
 ```
 
+## c). Lasso Model
 ```{r}
 
 # Lasso [Primary]
@@ -339,10 +350,19 @@ y = housing$SalePrice
 # Fit and plot model
 lasso_model = cv.glmnet(x[train, ], y[train] , alpha = 1)
 plot(lasso_model)
+
+```
+
+### i). Minimun Lambda and 1SE Value
+```{r}
 # Find min and 1SE values of lambda
 lasso_model$lambda.min; lasso_model$lambda.1se
 lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se, 
                      newx = x[-train, ])
+```
+
+### ii). Refit Lasso Model and Find Non-Zero Coefficients
+```{r}
 # Refit model and find non-zero coefficients
 lasso_model_coef = map(
   .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
@@ -352,7 +372,7 @@ lasso_model_coef = map(
 
 ```
 
-# Tree-based and boosted models
+## d). Tree-based and Boosted Models
 ```{r}
 
 boost_model = gbm(SalePrice ~ ., 
@@ -362,7 +382,16 @@ boost_model = gbm(SalePrice ~ .,
                   cv.folds = 10,
                   shrinkage = 0.1,
                   interaction.depth = 4)
-summary(boost_model)
+
+```
+
+### i). Summary Table of Boosted Model
+```{r}
+kable(summary(boost_model))
+```
+
+### ii). Relative Influence Chart
+```{r}
 for(.x in 1:5) {
   plot(boost_model, i = summary(boost_model)[.x, 'var'])
 }
@@ -373,8 +402,8 @@ boost_pred = predict(boost_model,
 ```
 
 
-#### Performance is evaluated against *appropriate validation methods*. (Evan)
-
+# 3. Performance Evaluation
+## a). Performance Metrics Function
 ```{r, cache = T}
 # Create performance_metrics function
 performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], predicted, plot = T, by_neighborhood = F) {
@@ -457,15 +486,16 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 }
 ```
 
-#### Compare estimated prediction accuracy against actual performance of 2010 data.(Evan)
 
+## b). Comparing Accuracy of Prediction Estimates Against Actual Values in 2010.
 ```{r}
 # Use performance_metrics function defined above for all models
 
 ```
 
 
-### 3. Home Features that are most Predictive of Sales Price.(Anthony)
+## c). Home Features Relation to the Model
+### i). Home Features That are Most Predictive of Sales Price.
 
 ```{r}
 
@@ -473,7 +503,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
  
 ```
 
-#### The Above Features Relation to Sales Price? (Anthony)
+### ii). How do the Above Features Relate to Sales Price?
 
 ```{r}
 
@@ -481,7 +511,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 ```
 
-### 4. Model's accracy across neighbourhoods (geographic variance) (Khadija)
+# 4. The Model's accuracy accros Neighbourhoods
 
 ```{r}
 
@@ -489,14 +519,19 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 ```
 
-### 5. Renovation Value Calculator (Evan and Anthony)
+# 5. Renovation Value Calculator (Evan and Anthony)
 
 I am going to write a bit about the calculator
+
 What it does
+
 Data sources:
+
 Room Renovation Costs [Business Insider](https://www.businessinsider.com/home-renovation-cost-each-room-2019-6)
+
 Roof Renovation Cost [Super Storm Restoration](https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.)
-Next block will be for using the calculator and give instructions
+
+
 ```{r, cache = T}
 
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
@@ -631,18 +666,53 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
     ) 
     
     # Return costs and predictions
-    return(list(remodeled_housing = remodeled_housing,
-                costs_benefits = costs_benefits))
+    # return(list(remodeled_housing = remodeled_housing,
+    #             costs_benefits = costs_benefits))
+    
+    
+    
+    if('add_full_bathroom' %in% upgrade) {
+        return(kable(list("remodeled_housing" =
+                          remodeled_housing[c("ï..Order", "PID", "Full.Bath",
+                                            "Year.Remod.Add", "SalePrice",
+                                            "Reno.Cost")],
+                          "cost_benefits" = costs_benefits)))
+    } else if ('remodel_kitchen' %in% upgrade){
+        return(kable(list("remodeled_housing"=
+                          remodeled_housing[c("ï..Order", "PID", "Kitchen.Qual",
+                                            "Year.Remod.Add", "SalePrice",
+                                            "Reno.Cost")],
+                          "cost_benefits" = costs_benefits)))
+    } else if ('finish_basement' %in% upgrade){
+        return(kable(list("remodeled_housing"=
+                          remodeled_housing[c("ï..Order", "PID", "BsmtFin.SF.1",
+                                            "Year.Remod.Add", "SalePrice",
+                                            "Reno.Cost")],
+                          "cost_benefits" = costs_benefits)))
+    } else if('replace_roof' %in% upgrade) {
+        return(kable(list("remodeled_housing"=
+                          remodeled_housing[c("ï..Order", "PID", "Exter.Cond",
+                                            "Year.Remod.Add", "SalePrice",
+                                            "Reno.Cost")],
+                          "cost_benefits" = costs_benefits)))
+    }else{
+        return(kable(list("remodeled_housing"=
+                        remodeled_housing[c("ï..Order", "PID", "Full.Bath",
+                                            "Kitchen.Qual", "BsmtFin.SF.1",
+                                            "Exter.Cond", "Year.Remod.Add",
+                                            "SalePrice", "Reno.Cost")],
+                        "cost_benefits" = costs_benefits)))      
+    }
+                                  
+           
   }
 }
 
 
-
-# Apply it to listings in the 2010 data where some of these improvements are possible.    Are there any cases where you would recommend particular home improvements to the clients?  For this question you will want to look up typical costs for these types of renovations. 
 ```
 
 
-###Using the Renovation Calculator
+## Using the Renovation Calculator
 ```{r}
 
 reno_value('add_bathroom', 'high')
