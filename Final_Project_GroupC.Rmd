@@ -1,7 +1,7 @@
 ---
 title: "Final_Project_GroupC"
 author: "Kramer, Rashid, and Stone"
-date: "3/8/2021"
+date: "3/18/2021"
 output:
   html_document:
     toc: true
@@ -29,6 +29,7 @@ library(pROC)
 library(leaps)
 library(glmnet)
 library(gbm)
+set.seed(95791)
 ```
 
 ## b). Import and Initial Data Prep
@@ -40,56 +41,17 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 ```
 
 ## c). Preparing Dataset for Analysis
-
-### iii). Factors reorder
-```{r}
-
-housing$Exter.Cond <- factor(housing$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Exter.Qual <- factor(housing$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
-housing$Bsmt.Qual <- factor(housing$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Bsmt.Cond <- factor(housing$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Kitchen.Qual <- factor(housing$Kitchen.Qual, levels = c('DNE', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Fireplace.Qu <- factor(housing$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Garage.Cond <- factor(housing$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Garage.Qual <- factor(housing$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Pool.QC <- factor(housing$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing$Heating.QC <- factor(housing$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-
-housing$MS.SubClass <- factor(housing$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
-
-sum(is.na(housing))
-
-#Show columns that have at least one NA
-housing[, colSums(is.na(housing)) > 0]
-
-#Show rowss that have at least one NA
-housing[rowSums(is.na(housing)) > 0,]
-
-```
-
 ### i). Removing NA values from dataset
 ```{r}
-# #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
-# Bsmt.Full.Bath
-# Bsmt.Half.Bath
-#Garage.Yr.Blt data is a Year value may need to be adjusted.
-#Mas.Vnr.Area
 
 if (sum(is.na(housing)) >0) {
-  
-  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30, 27,44,55)
+  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30)
   zero.Cols = c(3, 5, 49,50,61,63,64,28)
   zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
   catchall.cols = seq(1, 82, by=1)
   
-  #remove all BLANKS and change them to NA
-  for (i in catchall.cols){
-    housing[[i]][housing[[i]]==""] <- NA
-  }
-  
-  #Change NAs in specified qual variables to DNE
   for (i in DNE.Cols){
-    housing[[i]][is.na(housing[[i]])] = "DNE"
+    housing[[i]][is.na(housing[[i]]) | housing[[i]] == ""] = "DNE" # These are stored as "", not NA, so it's not picking them up
   }
   
   for (i in zero.Cols){
@@ -99,16 +61,8 @@ if (sum(is.na(housing)) >0) {
   for (i in zero.Cols.alt){
     housing[[i]][is.na(housing[[i]])] = 0
   }
-   
-  # for (i in catchall.cols){
-  #   housing[[i]][housing[[i]]==""] <- NA
-  # }
-   
-  # for (i in catchall.cols){
-  #   housing[[i]][is.na(housing[[i]])] = 0
-  # }
-  #Verify NAs are removed
-  sum(is.na(housing))
+
+  sum(is.na(housing))  #Verify NAs are removed
 }
 
 ```
@@ -120,14 +74,33 @@ sum(is.na(housing))
 #Show columns that have at least one NA
 housing[, colSums(is.na(housing)) > 0]
 
-#Show rowss that have at least one NA
+#Show rows that have at least one NA
 housing[rowSums(is.na(housing)) > 0,]
+
 ```
 
 ### iii). Factors reorder
 ```{r}
-housing$Kitchen.Qual
-housing$Kitchen.Qual <- factor(housing$Kitchen.Qual, levels = c('DNE', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors <- housing
+
+housing.factors$Exter.Cond <- factor(housing.factors$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Exter.Qual <- factor(housing.factors$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
+housing.factors$Bsmt.Qual <- factor(housing.factors$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Bsmt.Cond <- factor(housing.factors$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Kitchen.Qual <- factor(housing.factors$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Fireplace.Qu <- factor(housing.factors$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Garage.Cond <- factor(housing.factors$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Garage.Qual <- factor(housing.factors$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+
+housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(20, 30, 40, 45, 50, 60, 70, 75, 80, 85, 90, 120, 150, 160, 180, 190))
+
+# Print any columns with missing values
+for(v in names(housing.factors)) {
+  n_na = sum(is.na(housing.factors[v]))
+  if(n_na > 0) {print(v); print(n_na)}
+}
 
 ```
 
@@ -180,7 +153,7 @@ Garage.Cars     ~   Garage.Area     (0.89)
 
 qual.cols.vec <-  c(29, 30, 32, 33, 42, 55, 59, 65, 66, 74)
 for (i in qual.cols.vec){
-  boxplots <- qplot(data = housing, x = housing[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing)[i]))
+  boxplots <- qplot(data = housing.factors, x = housing.factors[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing.factors)[i]))
   print(boxplots)
   
 }
@@ -189,7 +162,7 @@ qual.cols.vec <-  c(3, 4, 7, 8 , 9 , 10, 11, 12, 13, 14, 15, 16, 17,
                     18, 23, 24, 25, 26, 27, 31, 35, 37, 41, 44, 57,
                     60, 62, 67, 75, 76, 80, 81)
 for (i in qual.cols.vec){
-  boxplots <- qplot(data = housing, x = housing[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing)[i]))
+  boxplots <- qplot(data = housing.factors, x = housing.factors[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing.factors)[i]))
   print(boxplots)
   
 }
@@ -212,7 +185,7 @@ nvmax = 1000 #ncol(housing)
 model = map(
   .x = c('forward', 'backward'),
   .f = ~regsubsets(SalePrice ~ .,
-           data = housing[housing$Yr.Sold != 2010, ],
+           data = housing.factors[housing.factors$Yr.Sold != 2010, ],
            nvmax = nvmax, method = .x, really.big = F)
 )
 
@@ -284,13 +257,13 @@ temp = bind_rows(
 # Try to figure out programmatically which variables are in the models
 for(r in 1:nrow(temp)) {
   if(temp$method[r] == 'forward') {
-    potential_names = names(housing)[agrepl(names(model_coef[[1]][r]),
-                                            names(housing), 
-                                            max.distance = 0.2)]
+    potential_names = names(housing.factors)[agrepl(names(model_coef[[1]][r]),
+                                            names(housing.factors), 
+                                            max.distance = 0.3)]
   } else {
-    potential_names = names(housing)[agrepl(names(model_coef[[2]][r]),
-                                            names(housing),
-                                            max.distance = 0.2)]
+    potential_names = names(housing.factors)[agrepl(names(model_coef[[2]][r]),
+                                            names(housing.factors),
+                                            max.distance = 0.3)]
   }
   if(length(potential_names) == 0) {
     varmatch = NA_character_
@@ -312,51 +285,50 @@ for(r in 1:nrow(temp)) {
 ### iii). Refitting Forward and Backaward Models
 ```{r}
 # Refit: Forward
-forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Shape', 'Lot.Config',
+forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Config',
                        'Land.Slope', 'Neighborhood', 'Condition.1',
-                       'Condition.2', 'Bldg.Type', 'Overall.Qual',
-                       'Overall.Cond', 'Year.Built', 'Roof.Matl', 
-                       'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual',
-                       'Foundation', 'Bsmt.Qual', 'BsmtFin.Type.1',
-                       'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
-                       'TotRms.AbvGrd', 'Functional', 'Fireplaces', 
-                       'Fireplace.Qu', 'Garage.Type', 'Garage.Qual',
-                       'Paved.Drive', 'Open.Porch.SF', 'Misc.Feature',
-                       'Misc.Val', 'Mo.Sold', 'Yr.Sold', 'Sale.Type',
-                       'BsmtFin.Type.1', 'Garage.Finish', 'Garage.Cond')
+                       'Condition.2', 'House.Style', 'Overall.Cond',
+                       'Year.Built', 'Year.Remod.Add', 'Roof.Style', 
+                       'Roof.Matl', 'Exterior.1st', 'Mas.Vnr.Area', 
+                       'Exter.Qual', 'Exter.Cond', 'Bsmt.Exposure',
+                       'BsmtFin.Type.1', 'BsmtFin.SF.1', 'BsmtFin.SF.2',
+                       'Heating.QC', 'Low.Qual.Fin.SF', 'Kitchen.Qual',
+                       'TotRms.AbvGrd', 'Functional', 'Fireplace.Qu',
+                       'Garage.Type', 'Garage.Yr.Blt', 'Garage.Cond',
+                       'Paved.Drive', 'Wood.Deck.SF', 'Misc.Feature',
+                       'Misc.Val', 'Yr.Sold', 'Sale.Type',
+                       'BsmtFin.Type.1', 'Kitchen.Qual', 'Garage.Cond')
 forward_pred = predict(
   lm(formula(paste('SalePrice ~', str_flatten(forward_predictors, "+"))), 
-     data = housing), #[housing$Yr.Sold != 2010, ]),
-  housing[housing$Yr.Sold == 2010, ]
+     data = housing.factors), #[housing$Yr.Sold != 2010, ]),
+  housing.factors[housing.factors$Yr.Sold == 2010, ]
 )
 
 # Refit: Backward
-backward_predictors = c('MS.SubClass', 'MS.Zoning', 'Lot.Area', 'Land.Contour',
+backward_predictors = c('MS.SubClass', 'Lot.Area', 'Land.Slope',
                         'Neighborhood', 'Condition.1', 'Condition.2',
-                        'Bldg.Type', 'Overall.Qual', 'Overall.Cond', 
-                        'Year.Built', 'Year.Remod.Add', 'Roof.Matl', 
+                        'Bldg.Type', 'Overall.Cond', 'Year.Built',
+                        'Year.Remod.Add', 'Roof.Style', 'Roof.Matl', 
                         'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual', 
-                        'Exter.Cond', 'Bsmt.Qual', 'BsmtFin.Type.1', 
-                        'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
-                        'Functional', 'Fireplaces', 'Fireplace.Qu', 
-                        'Garage.Type', 'Garage.Qual', 'Paved.Drive', 
-                        'Open.Porch.SF', 'Pool.QC', 'Misc.Feature', 'Mo.Sold',
-                        'Sale.Type', 'BsmtFin.Type.1', 'Garage.Cond')
+                        'Exter.Cond', 'Bsmt.Cond', 'BsmtFin.Type.1', 
+                        'BsmtFin.SF.1', 'BsmtFin.SF.1', 'Heating.QC',
+                        'Kitchen.Qual', 'Functional', 'Fireplaces',
+                        'Fireplace.Qu', 'Garage.Type', 'Garage.Yr.Blt',
+                        'Wood.Deck.SF', 'X3Ssn.Porch', 'Screen.Porch',
+                        'Misc.Feature', 'Sale.Type', 'BsmtFin.Type.1',
+                        'Garage.Cond')
 backward_pred = predict(
   lm(formula(paste('SalePrice ~', str_flatten(backward_predictors, "+"))), 
-     data = housing), #[housing$Yr.Sold != 2010, ]),
-  housing[housing$Yr.Sold == 2010, ]
+     data = housing.factors), #[housing$Yr.Sold != 2010, ]),
+  housing.factors[housing.factors$Yr.Sold == 2010, ]
 )
 ```
 
 ## b). Generalized Linear Model
 ```{r, cache = T}
 # GLM
-glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
+glm = glm(SalePrice ~ ., data = housing.factors[housing.factors$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
-
-glm.pred = predict(glm, housing[housing$Yr.Sold == 2010,], type= "response")
-
 ```
 
 ## c). Lasso Model
@@ -364,9 +336,9 @@ glm.pred = predict(glm, housing[housing$Yr.Sold == 2010,], type= "response")
 
 # Lasso [Primary]
 # Define x and y objects for Lasso, as well as specifying training data
-train = which(housing$Yr.Sold != 2010)
-x = model.matrix(SalePrice ~ ., housing)[, -1]
-y = housing$SalePrice
+train = which(housing.factors$Yr.Sold != 2010)
+x = model.matrix(SalePrice ~ ., housing.factors)[, -1]
+y = housing.factors$SalePrice
 
 # Fit and plot model
 lasso_model = cv.glmnet(x[train, ], y[train] , alpha = 1)
@@ -394,10 +366,10 @@ lasso_model_coef = map(
 ```
 
 ## d). Tree-based and Boosted Models
-```{r, cache = TRUE}
+```{r}
 
 boost_model = gbm(SalePrice ~ ., 
-                  data = mutate_if(housing, is.character, as.factor)[housing$Yr.Sold != 2010, ],
+                  data = mutate_if(housing.factors, is.character, as.factor)[housing.factors$Yr.Sold != 2010, ],
                   distribution = 'gaussian', 
                   n.trees = 5000,
                   cv.folds = 10,
@@ -417,7 +389,7 @@ for(.x in 1:5) {
   plot(boost_model, i = summary(boost_model)[.x, 'var'])
 }
 boost_pred = predict(boost_model, 
-                     newdata = housing[housing$Yr.Sold == 2010, ],
+                     newdata = housing.factors[housing.factors$Yr.Sold == 2010, ],
                      n.trees = 5000)
 
 ```
@@ -427,7 +399,7 @@ boost_pred = predict(boost_model,
 ## a). Performance Metrics Function
 ```{r, cache = T}
 # Create performance_metrics function
-performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], predicted, plot = T, by_neighborhood = F) {
+performance_metrics = function(actual = housing.factors[housing.factors$Yr.Sold == 2010, 'SalePrice'], predicted, plot = T, by_neighborhood = F) {
   # Check that actual and predicted values are the same length
   if(length(actual) != length(predicted)) {
     message("'actual' and 'predicted' vectors must be the same length.")
@@ -436,7 +408,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
     # Including by neighborhood
     if(by_neighborhood) {
       metrics = tibble(
-        neighborhood = housing[housing$Yr.Sold == 2010, 'Neighborhood'],
+        neighborhood = housing.factors[housing.factors$Yr.Sold == 2010, 'Neighborhood'],
         actual = actual,
         predicted = as.numeric(predicted),
         mse = (actual - predicted)^2,
@@ -448,7 +420,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
         ungroup()
       
       # Plot
-      barplot = ggplot(data = pivot_longer(temp, cols = mse:rel_error,
+      barplot = ggplot(data = pivot_longer(metrics, cols = mse:rel_error,
                                            names_to = 'performance_metric',
                                            values_to = 'metric_score'),
                     aes(x = performance_metric, y = metric_score)) + 
@@ -459,7 +431,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
         facet_wrap(~neighborhood) + 
         theme_bw()
       scatter = ggplot(data = tibble(
-        neighborhood = housing[housing$Yr.Sold == 2010, 'Neighborhood'],
+        neighborhood = housing.factors[housing.factors$Yr.Sold == 2010, 'Neighborhood'],
         actual = actual, 
         predicted = predicted), 
         aes(x = actual, y = predicted)) + 
@@ -509,40 +481,11 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 
 ## b). Comparing Accuracy of Prediction Estimates Against Actual Values in 2010.
-
-### i). Forward Stepwise Model Accuracy
 ```{r}
 # Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'],forward_pred, plot = T, by_neighborhood = F)
-
-```
-
-### ii).Bakcward Stepwise Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], backward_pred, plot = T, by_neighborhood = F)
-
-```
-
-### iii). GLM Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-#performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], glm.pred, plot = T, by_neighborhood = F)
-
-```
-
-### iv). Lasso Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], lasso_pred, plot = T, by_neighborhood = F)
-
-```
-
-### v). Boosted Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], boost_pred, plot = T, by_neighborhood = F)
-
+map(list(forward_pred = forward_pred, backward_pred = backward_pred,
+         lasso_pred = lasso_pred, boost_pred = boost_pred),
+    ~performance_metrics(predicted = .x))
 ```
 
 
@@ -563,40 +506,13 @@ performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], boos
 
 ```
 
-# 4. The Model's accuracy across Neighbourhoods
+# 4. The Model's accuracy accros Neighbourhoods
 
-### i). Forward Stepwise Model Accuracy
 ```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(predicted = forward_pred, by_neighborhood = T)
-
-```
-
-### ii).Bakcward Stepwise Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], backward_pred, plot = T, by_neighborhood = T)
-
-```
-
-### iii). GLM Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-#performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], glm.pred, plot = T, by_neighborhood = F)
-
-```
-
-### iv). Lasso Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], lasso_pred, plot = T, by_neighborhood = T)
-
-```
-
-### v). Boosted Model Accuracy
-```{r}
-# Use performance_metrics function defined above for all models
-performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], boost_pred, plot = T, by_neighborhood = T)
+# TODO: Khadija, the code below calls the performance_metrics function and should help
+map(list(forward_pred = forward_pred, backward_pred = backward_pred,
+         lasso_pred = lasso_pred, boost_pred = boost_pred),
+    ~performance_metrics(predicted = .x, by_neighborhood = T))
 
 ```
 
@@ -617,11 +533,11 @@ Roof Renovation Cost [Super Storm Restoration](https://www.superstormrestoration
 
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
-                      budget = c('low', 'medium', 'high')) { #Evan fix to allow null renovation and one budget type
-  
+                      budget = c('medium', 'low', 'high')) {
+
   # # Confirm upgrade and budget args; otherwise throw an error
   upgrade = tryCatch(
-    match.arg(upgrade, choices = c('add_bathroom', 'remodel_kitchen',
+    match.arg(upgrade, choices = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
                       several.ok = T),
     error = identity
@@ -650,6 +566,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           budget == 'high' ~ Reno.Cost + 14833,
           T ~ Reno.Cost
         ),
+        PreReno.Full.Bath = Full.Bath,
         Full.Bath = Full.Bath + 1,
         Year.Remod.Add = 2010
       )
@@ -667,6 +584,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           budget == 'high' ~ Reno.Cost + 34789,
           T ~ Reno.Cost
         ),
+        PreReno.Kitchen.Qual = Kitchen.Qual,
         Kitchen.Qual = case_when(
           Kitchen.Qual == 'Gd' ~ 'Ex',
           Kitchen.Qual == "TA" & budget == 'low' ~ 'Gd',
@@ -695,6 +613,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           budget == 'high' ~ Reno.Cost + 1.25 * 15000,
           T ~ Reno.Cost
         ),
+        PreReno.BsmtFin.Type.1 = BsmtFin.Type.1,
         BsmtFin.Type.1 = case_when(
           Bsmt.Cond %in% c("DNE", '') ~ BsmtFin.Type.1,
           budget == 'low' ~ "BLQ",
@@ -702,6 +621,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           budget == 'high' ~ "GLQ",
           T ~ BsmtFin.Type.1
         ),
+        PreReno.BsmtFin.SF.1 = BsmtFin.SF.1,
         BsmtFin.SF.1 = BsmtFin.SF.1 + Bsmt.Unf.SF,
         Year.Remod.Add = 2010
       )
@@ -717,6 +637,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           budget == 'high' ~ Reno.Cost + 15000,
           T ~ Reno.Cost
         ),
+        PreReno.Exter.Cond = Exter.Cond,
         Exter.Cond = case_when(
           Exter.Cond == 'Gd' ~ 'Ex',
           Exter.Cond == "TA" & budget == 'low' ~ 'Gd',
@@ -751,40 +672,26 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
     #             costs_benefits = costs_benefits))
     
     
-    
+    rem_housing_cols = c("ï..Order", "PID")
     if('add_full_bathroom' %in% upgrade) {
-        return(kable(list("remodeled_housing" =
-                          remodeled_housing[c("ï..Order", "PID", "Full.Bath",
-                                            "Year.Remod.Add", "SalePrice",
-                                            "Reno.Cost")],
-                          "cost_benefits" = costs_benefits)))
-    } else if ('remodel_kitchen' %in% upgrade){
-        return(kable(list("remodeled_housing"=
-                          remodeled_housing[c("ï..Order", "PID", "Kitchen.Qual",
-                                            "Year.Remod.Add", "SalePrice",
-                                            "Reno.Cost")],
-                          "cost_benefits" = costs_benefits)))
-    } else if ('finish_basement' %in% upgrade){
-        return(kable(list("remodeled_housing"=
-                          remodeled_housing[c("ï..Order", "PID", "BsmtFin.SF.1",
-                                            "Year.Remod.Add", "SalePrice",
-                                            "Reno.Cost")],
-                          "cost_benefits" = costs_benefits)))
-    } else if('replace_roof' %in% upgrade) {
-        return(kable(list("remodeled_housing"=
-                          remodeled_housing[c("ï..Order", "PID", "Exter.Cond",
-                                            "Year.Remod.Add", "SalePrice",
-                                            "Reno.Cost")],
-                          "cost_benefits" = costs_benefits)))
-    }else{
-        return(kable(list("remodeled_housing"=
-                        remodeled_housing[c("ï..Order", "PID", "Full.Bath",
-                                            "Kitchen.Qual", "BsmtFin.SF.1",
-                                            "Exter.Cond", "Year.Remod.Add",
-                                            "SalePrice", "Reno.Cost")],
-                        "cost_benefits" = costs_benefits)))      
+        rem_housing_cols = c(rem_housing_cols, "PreReno.Full.Bath", "Full.Bath")
     }
-                                  
+    if ('remodel_kitchen' %in% upgrade){
+        rem_housing_cols = append(rem_housing_cols, c("PreReno.Kitchen.Qual", "Kitchen.Qual"))
+    }
+    if ('finish_basement' %in% upgrade){
+       rem_housing_cols = c(rem_housing_cols, c("PreReno.BsmtFin.Type.1",
+                                           "BsmtFin.Type.1",
+                                           "PreReno.BsmtFin.SF.1","BsmtFin.SF.1"))
+    }
+    if('replace_roof' %in% upgrade) {
+       rem_housing_cols = c(rem_housing_cols, "Exter.Cond")
+    }
+    
+    rem_housing_cols = c(rem_housing_cols, c("Year.Remod.Add","SalePrice", "Reno.Cost"))
+
+    return(list("remodeled_housing" = remodeled_housing[rem_housing_cols],
+                "cost_benefits" = costs_benefits))                              
            
   }
 }
@@ -796,6 +703,29 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
 ## Using the Renovation Calculator
 ```{r}
 
-reno_value('add_bathroom', 'high')
+#reno_value('add_full_bathroom', 'high')
+#reno_value('add_full_bathroom', 'medium')
+#reno_value('add_full_bathroom', 'low')
+
+#reno_value('remodel_kitchen', 'high')
+#reno_value('remodel_kitchen', 'medium')
+#reno_value('remodel_kitchen', 'low')
+
+#reno_value('replace_roof', 'high')
+#reno_value('replace_roof', 'medium')
+#reno_value('replace_roof', 'low')
+
+#reno_value('finish_basement', 'high')
+#reno_value('finish_basement', 'medium')
+#reno_value('finish_basement', 'low')
+
+#k.h <- reno_value('remodel_kitchen', 'high')
+#reno_value('add_full_bathroom', 'medium')
+#reno_value('low')
+
+
+all.reno <- reno_value(c('add_full_bathroom','remodel_kitchen', 'replace_roof', 'finish_basement'),"low")
+all.reno$remodeled_housing
+all.reno$cost_benefits[all.reno$cost_benefits$net >0 & all.reno$cost_benefits$remodeling_costs > 0,]
 
 ```
