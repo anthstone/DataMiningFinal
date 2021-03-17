@@ -29,6 +29,7 @@ library(pROC)
 library(leaps)
 library(glmnet)
 library(gbm)
+set.seed(95791)
 ```
 
 ## b). Import and Initial Data Prep
@@ -90,9 +91,6 @@ housing[, colSums(is.na(housing)) > 0]
 #Show rows that have at least one NA
 housing[rowSums(is.na(housing)) > 0,]
 
-# Same for housing.factors
-housing.factors[, colSums(is.na(housing.factors)) > 0]
-housing.factors[rowSums(is.na(housing)) > 0, ]
 ```
 
 ### iii). Factors reorder
@@ -275,11 +273,11 @@ for(r in 1:nrow(temp)) {
   if(temp$method[r] == 'forward') {
     potential_names = names(housing.factors)[agrepl(names(model_coef[[1]][r]),
                                             names(housing.factors), 
-                                            max.distance = 0.2)]
+                                            max.distance = 0.3)]
   } else {
-    potential_names = names(housing)[agrepl(names(model_coef[[2]][r]),
+    potential_names = names(housing.factors)[agrepl(names(model_coef[[2]][r]),
                                             names(housing.factors),
-                                            max.distance = 0.2)]
+                                            max.distance = 0.3)]
   }
   if(length(potential_names) == 0) {
     varmatch = NA_character_
@@ -301,49 +299,50 @@ for(r in 1:nrow(temp)) {
 ### iii). Refitting Forward and Backaward Models
 ```{r}
 # Refit: Forward
-forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Shape', 'Lot.Config',
+forward_predictors = c('MS.SubClass', 'Lot.Area', 'Lot.Config',
                        'Land.Slope', 'Neighborhood', 'Condition.1',
-                       'Condition.2', 'Bldg.Type', 'Overall.Qual',
-                       'Overall.Cond', 'Year.Built', 'Roof.Matl', 
-                       'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual',
-                       'Foundation', 'Bsmt.Qual', 'BsmtFin.Type.1',
-                       'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
-                       'TotRms.AbvGrd', 'Functional', 'Fireplaces', 
-                       'Fireplace.Qu', 'Garage.Type', 'Garage.Qual',
-                       'Paved.Drive', 'Open.Porch.SF', 'Misc.Feature',
-                       'Misc.Val', 'Mo.Sold', 'Yr.Sold', 'Sale.Type',
-                       'BsmtFin.Type.1', 'Garage.Finish', 'Garage.Cond')
+                       'Condition.2', 'House.Style', 'Overall.Cond',
+                       'Year.Built', 'Year.Remod.Add', 'Roof.Style', 
+                       'Roof.Matl', 'Exterior.1st', 'Mas.Vnr.Area', 
+                       'Exter.Qual', 'Exter.Cond', 'Bsmt.Exposure',
+                       'BsmtFin.Type.1', 'BsmtFin.SF.1', 'BsmtFin.SF.2',
+                       'Heating.QC', 'Low.Qual.Fin.SF', 'Kitchen.Qual',
+                       'TotRms.AbvGrd', 'Functional', 'Fireplace.Qu',
+                       'Garage.Type', 'Garage.Yr.Blt', 'Garage.Cond',
+                       'Paved.Drive', 'Wood.Deck.SF', 'Misc.Feature',
+                       'Misc.Val', 'Yr.Sold', 'Sale.Type',
+                       'BsmtFin.Type.1', 'Kitchen.Qual', 'Garage.Cond')
 forward_pred = predict(
   lm(formula(paste('SalePrice ~', str_flatten(forward_predictors, "+"))), 
-     data = housing), #[housing$Yr.Sold != 2010, ]),
-  housing[housing$Yr.Sold == 2010, ]
+     data = housing.factors), #[housing$Yr.Sold != 2010, ]),
+  housing.factors[housing.factors$Yr.Sold == 2010, ]
 )
 
 # Refit: Backward
-backward_predictors = c('MS.SubClass', 'MS.Zoning', 'Lot.Area', 'Land.Contour',
+backward_predictors = c('MS.SubClass', 'Lot.Area', 'Land.Slope',
                         'Neighborhood', 'Condition.1', 'Condition.2',
-                        'Bldg.Type', 'Overall.Qual', 'Overall.Cond', 
-                        'Year.Built', 'Year.Remod.Add', 'Roof.Matl', 
+                        'Bldg.Type', 'Overall.Cond', 'Year.Built',
+                        'Year.Remod.Add', 'Roof.Style', 'Roof.Matl', 
                         'Exterior.1st', 'Mas.Vnr.Type', 'Exter.Qual', 
-                        'Exter.Cond', 'Bsmt.Qual', 'BsmtFin.Type.1', 
-                        'BsmtFin.SF.2', 'Heating.QC', 'Kitchen.Qual',
-                        'Functional', 'Fireplaces', 'Fireplace.Qu', 
-                        'Garage.Type', 'Garage.Qual', 'Paved.Drive', 
-                        'Open.Porch.SF', 'Pool.QC', 'Misc.Feature', 'Mo.Sold',
-                        'Sale.Type', 'BsmtFin.Type.1', 'Garage.Cond')
+                        'Exter.Cond', 'Bsmt.Cond', 'BsmtFin.Type.1', 
+                        'BsmtFin.SF.1', 'BsmtFin.SF.1', 'Heating.QC',
+                        'Kitchen.Qual', 'Functional', 'Fireplaces',
+                        'Fireplace.Qu', 'Garage.Type', 'Garage.Yr.Blt',
+                        'Wood.Deck.SF', 'X3Ssn.Porch', 'Screen.Porch',
+                        'Misc.Feature', 'Sale.Type', 'BsmtFin.Type.1',
+                        'Garage.Cond')
 backward_pred = predict(
   lm(formula(paste('SalePrice ~', str_flatten(backward_predictors, "+"))), 
-     data = housing), #[housing$Yr.Sold != 2010, ]),
-  housing[housing$Yr.Sold == 2010, ]
+     data = housing.factors), #[housing$Yr.Sold != 2010, ]),
+  housing.factors[housing.factors$Yr.Sold == 2010, ]
 )
 ```
 
 ## b). Generalized Linear Model
 ```{r, cache = T}
 # GLM
-glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
+glm = glm(SalePrice ~ ., data = housing.factors[housing.factors$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
-
 ```
 
 ## c). Lasso Model
@@ -351,9 +350,9 @@ names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 
 # Lasso [Primary]
 # Define x and y objects for Lasso, as well as specifying training data
-train = which(housing$Yr.Sold != 2010)
-x = model.matrix(SalePrice ~ ., housing)[, -1]
-y = housing$SalePrice
+train = which(housing.factors$Yr.Sold != 2010)
+x = model.matrix(SalePrice ~ ., housing.factors)[, -1]
+y = housing.factors$SalePrice
 
 # Fit and plot model
 lasso_model = cv.glmnet(x[train, ], y[train] , alpha = 1)
@@ -384,7 +383,7 @@ lasso_model_coef = map(
 ```{r}
 
 boost_model = gbm(SalePrice ~ ., 
-                  data = mutate_if(housing, is.character, as.factor)[housing$Yr.Sold != 2010, ],
+                  data = mutate_if(housing.factors, is.character, as.factor)[housing.factors$Yr.Sold != 2010, ],
                   distribution = 'gaussian', 
                   n.trees = 5000,
                   cv.folds = 10,
@@ -404,7 +403,7 @@ for(.x in 1:5) {
   plot(boost_model, i = summary(boost_model)[.x, 'var'])
 }
 boost_pred = predict(boost_model, 
-                     newdata = housing[housing$Yr.Sold == 2010, ],
+                     newdata = housing.factors[housing.factors$Yr.Sold == 2010, ],
                      n.trees = 5000)
 
 ```
@@ -414,7 +413,7 @@ boost_pred = predict(boost_model,
 ## a). Performance Metrics Function
 ```{r, cache = T}
 # Create performance_metrics function
-performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], predicted, plot = T, by_neighborhood = F) {
+performance_metrics = function(actual = housing.factors[housing.factors$Yr.Sold == 2010, 'SalePrice'], predicted, plot = T, by_neighborhood = F) {
   # Check that actual and predicted values are the same length
   if(length(actual) != length(predicted)) {
     message("'actual' and 'predicted' vectors must be the same length.")
@@ -423,7 +422,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
     # Including by neighborhood
     if(by_neighborhood) {
       metrics = tibble(
-        neighborhood = housing[housing$Yr.Sold == 2010, 'Neighborhood'],
+        neighborhood = housing.factors[housing.factors$Yr.Sold == 2010, 'Neighborhood'],
         actual = actual,
         predicted = as.numeric(predicted),
         mse = (actual - predicted)^2,
@@ -435,7 +434,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
         ungroup()
       
       # Plot
-      barplot = ggplot(data = pivot_longer(temp, cols = mse:rel_error,
+      barplot = ggplot(data = pivot_longer(metrics, cols = mse:rel_error,
                                            names_to = 'performance_metric',
                                            values_to = 'metric_score'),
                     aes(x = performance_metric, y = metric_score)) + 
@@ -446,7 +445,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
         facet_wrap(~neighborhood) + 
         theme_bw()
       scatter = ggplot(data = tibble(
-        neighborhood = housing[housing$Yr.Sold == 2010, 'Neighborhood'],
+        neighborhood = housing.factors[housing.factors$Yr.Sold == 2010, 'Neighborhood'],
         actual = actual, 
         predicted = predicted), 
         aes(x = actual, y = predicted)) + 
@@ -498,7 +497,9 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 ## b). Comparing Accuracy of Prediction Estimates Against Actual Values in 2010.
 ```{r}
 # Use performance_metrics function defined above for all models
-
+map(list(forward_pred = forward_pred, backward_pred = backward_pred,
+         lasso_pred = lasso_pred, boost_pred = boost_pred),
+    ~performance_metrics(predicted = .x))
 ```
 
 
@@ -522,8 +523,10 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 # 4. The Model's accuracy accros Neighbourhoods
 
 ```{r}
-
-# Code Here
+# TODO: Khadija, the code below calls the performance_metrics function and should help
+map(list(forward_pred = forward_pred, backward_pred = backward_pred,
+         lasso_pred = lasso_pred, boost_pred = boost_pred),
+    ~performance_metrics(predicted = .x, by_neighborhood = T))
 
 ```
 
@@ -703,7 +706,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                             "Year.Remod.Add", "SalePrice",
                                             "Reno.Cost")],
                           "cost_benefits" = costs_benefits)))
-    }else{
+    } else{
         return(kable(list("remodeled_housing"=
                         remodeled_housing[c("ï..Order", "PID", "Full.Bath",
                                             "Kitchen.Qual", "BsmtFin.SF.1",
