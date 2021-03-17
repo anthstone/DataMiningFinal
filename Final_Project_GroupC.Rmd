@@ -336,6 +336,8 @@ backward_pred = predict(
 glm = glm(SalePrice ~ ., data = housing[housing$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 
+#glm.pred = predict(glm, housing[housing$Yr.Sold == 2010,])
+
 ```
 
 ## c). Lasso Model
@@ -488,8 +490,39 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 
 ## b). Comparing Accuracy of Prediction Estimates Against Actual Values in 2010.
+
+### i). Forward Stepwise Model Accuracy
 ```{r}
 # Use performance_metrics function defined above for all models
+performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'],forward_pred, plot = T, by_neighborhood = F)
+
+```
+
+### ii).Bakcward Stepwise Model Accuracy
+```{r}
+# Use performance_metrics function defined above for all models
+performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], backward_pred, plot = T, by_neighborhood = F)
+
+```
+
+### iii). GLM Model Accuracy
+```{r}
+# Use performance_metrics function defined above for all models
+#performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], glm.pred, plot = T, by_neighborhood = F)
+
+```
+
+### iv). Lasso Model Accuracy
+```{r}
+# Use performance_metrics function defined above for all models
+performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], lasso_pred, plot = T, by_neighborhood = F)
+
+```
+
+### v). Boosted Model Accuracy
+```{r}
+# Use performance_metrics function defined above for all models
+performance_metrics(actual = housing[housing$Yr.Sold == 2010, 'SalePrice'], boost_pred, plot = T, by_neighborhood = F)
 
 ```
 
