@@ -40,6 +40,33 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 ```
 
 ## c). Preparing Dataset for Analysis
+
+### iii). Factors reorder
+```{r}
+
+housing$Exter.Cond <- factor(housing$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Exter.Qual <- factor(housing$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
+housing$Bsmt.Qual <- factor(housing$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Bsmt.Cond <- factor(housing$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Kitchen.Qual <- factor(housing$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Fireplace.Qu <- factor(housing$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Garage.Cond <- factor(housing$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Garage.Qual <- factor(housing$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Pool.QC <- factor(housing$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing$Heating.QC <- factor(housing$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+
+housing$MS.SubClass <- factor(housing$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
+
+sum(is.na(housing))
+
+#Show columns that have at least one NA
+housing[, colSums(is.na(housing)) > 0]
+
+#Show rowss that have at least one NA
+housing[rowSums(is.na(housing)) > 0,]
+
+```
+
 ### i). Removing NA values from dataset
 ```{r}
 # #BSMT Numeric--This may need to be addressed differently. You can have a basement without a bathroom, and zero values already exist.
@@ -50,11 +77,17 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 
 if (sum(is.na(housing)) >0) {
   
-  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30)
+  DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30, 27,44)
   zero.Cols = c(3, 5, 49,50,61,63,64,28)
   zero.Cols.alt = c(36,38,39,40) #These are all from one record (1342). Maybe just omit the record?
   catchall.cols = seq(1, 82, by=1)
   
+  #remove all BLANKS and change them to NA
+  for (i in catchall.cols){
+    housing[[i]][housing[[i]]==""] <- NA
+  }
+  
+  #Change NAs in specified qual variables to DNE
   for (i in DNE.Cols){
     housing[[i]][is.na(housing[[i]])] = "DNE"
   }
@@ -70,7 +103,7 @@ if (sum(is.na(housing)) >0) {
   # for (i in catchall.cols){
   #   housing[[i]][housing[[i]]==""] <- NA
   # }
-  # 
+   
   # for (i in catchall.cols){
   #   housing[[i]][is.na(housing[[i]])] = 0
   # }
@@ -93,22 +126,28 @@ housing[rowSums(is.na(housing)) > 0,]
 
 ### iii). Factors reorder
 ```{r}
-housing.factors <- housing
-
-housing.factors$Exter.Cond <- factor(housing.factors$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Exter.Qual <- factor(housing.factors$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
-housing.factors$Bsmt.Qual <- factor(housing.factors$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Bsmt.Cond <- factor(housing.factors$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Kitchen.Qual <- factor(housing.factors$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Fireplace.Qu <- factor(housing.factors$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Garage.Cond <- factor(housing.factors$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Garage.Qual <- factor(housing.factors$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
-
-housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
-
-
+# housing.factors <- housing
+# 
+# housing.factors$Exter.Cond <- factor(housing.factors$Exter.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Exter.Qual <- factor(housing.factors$Exter.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex')) 
+# housing.factors$Bsmt.Qual <- factor(housing.factors$Bsmt.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Bsmt.Cond <- factor(housing.factors$Bsmt.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Kitchen.Qual <- factor(housing.factors$Kitchen.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Fireplace.Qu <- factor(housing.factors$Fireplace.Qu, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Garage.Cond <- factor(housing.factors$Garage.Cond, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Garage.Qual <- factor(housing.factors$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+# 
+# housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
+# 
+# sum(is.na(housing.factors))
+# 
+# #Show columns that have at least one NA
+# housing.factors[, colSums(is.na(housing.factors)) > 0]
+# 
+# #Show rowss that have at least one NA
+# housing.factors[rowSums(is.na(housing.factors)) > 0,]
 
 ```
 
