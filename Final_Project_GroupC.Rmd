@@ -457,7 +457,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 # https://www.superstormrestoration.com/blog/how-much-does-a-new-roof-cost#:~:text=The%20average%20cost%20to%20replace%20a%20roof%20can%20vary%20quite,and%20%245.00%20per%20square%20foot.
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
-                      budget = c('low', 'medium', 'high')) {
+                      budget = c('medium', 'low', 'high')) {
   
   # # Confirm upgrade and budget args; otherwise throw an error
   upgrade = tryCatch(
