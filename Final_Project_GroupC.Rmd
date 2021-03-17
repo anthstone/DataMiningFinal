@@ -1,7 +1,7 @@
 ---
 title: "Final_Project_GroupC"
 author: "Kramer, Rashid, and Stone"
-date: "3/8/2021"
+date: "3/18/2021"
 output:
   html_document:
     toc: true
@@ -56,7 +56,7 @@ if (sum(is.na(housing)) >0) {
   catchall.cols = seq(1, 82, by=1)
   
   for (i in DNE.Cols){
-    housing[[i]][is.na(housing[[i]])] = "DNE"
+    housing[[i]][is.na(housing[[i]]) | housing[[i]] == ""] = "DNE" # These are stored as "", not NA, so it's not picking them up
   }
   
   for (i in zero.Cols){
@@ -87,8 +87,12 @@ sum(is.na(housing))
 #Show columns that have at least one NA
 housing[, colSums(is.na(housing)) > 0]
 
-#Show rowss that have at least one NA
+#Show rows that have at least one NA
 housing[rowSums(is.na(housing)) > 0,]
+
+# Same for housing.factors
+housing.factors[, colSums(is.na(housing.factors)) > 0]
+housing.factors[rowSums(is.na(housing)) > 0, ]
 ```
 
 ### iii). Factors reorder
@@ -106,9 +110,13 @@ housing.factors$Garage.Qual <- factor(housing.factors$Garage.Qual, levels = c('D
 housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 
-housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(0, 20, 30, 40, 45, 50, 60, 70, 75, 80, 90, 120, 150, 160, 180, 190))
+housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(20, 30, 40, 45, 50, 60, 70, 75, 80, 85, 90, 120, 150, 160, 180, 190))
 
-
+# Print any columns with missing values
+for(v in names(housing.factors)) {
+  n_na = sum(is.na(housing.factors[v]))
+  if(n_na > 0) {print(v); print(n_na)}
+}
 
 ```
 
@@ -193,7 +201,7 @@ nvmax = 1000 #ncol(housing)
 model = map(
   .x = c('forward', 'backward'),
   .f = ~regsubsets(SalePrice ~ .,
-           data = housing[housing$Yr.Sold != 2010, ],
+           data = housing.factors[housing.factors$Yr.Sold != 2010, ],
            nvmax = nvmax, method = .x, really.big = F)
 )
 
@@ -265,12 +273,12 @@ temp = bind_rows(
 # Try to figure out programmatically which variables are in the models
 for(r in 1:nrow(temp)) {
   if(temp$method[r] == 'forward') {
-    potential_names = names(housing)[agrepl(names(model_coef[[1]][r]),
-                                            names(housing), 
+    potential_names = names(housing.factors)[agrepl(names(model_coef[[1]][r]),
+                                            names(housing.factors), 
                                             max.distance = 0.2)]
   } else {
     potential_names = names(housing)[agrepl(names(model_coef[[2]][r]),
-                                            names(housing),
+                                            names(housing.factors),
                                             max.distance = 0.2)]
   }
   if(length(potential_names) == 0) {
@@ -515,7 +523,7 @@ performance_metrics = function(actual = housing[housing$Yr.Sold == 2010, 'SalePr
 
 ```{r}
 
-#Code Here
+# Code Here
 
 ```
 
@@ -536,12 +544,8 @@ Roof Renovation Cost [Super Storm Restoration](https://www.superstormrestoration
 
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
-<<<<<<< HEAD
                       budget = c('medium', 'low', 'high')) {
-=======
-                      budget = c('low', 'medium', 'high')) { #Evan fix to allow null renovation and one budget type
->>>>>>> refs/remotes/data_mining_final/main
-  
+
   # # Confirm upgrade and budget args; otherwise throw an error
   upgrade = tryCatch(
     match.arg(upgrade, choices = c('add_bathroom', 'remodel_kitchen',
