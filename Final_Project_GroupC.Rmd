@@ -346,8 +346,7 @@ names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 ```
 
 ## c). Lasso Model
-```{r}
-
+```{r, cache = T}
 # Lasso [Primary]
 # Define x and y objects for Lasso, as well as specifying training data
 train = which(housing.factors$Yr.Sold != 2010)
@@ -361,7 +360,7 @@ plot(lasso_model)
 ```
 
 ### i). Minimun Lambda and 1SE Value
-```{r}
+```{r, cache = T}
 # Find min and 1SE values of lambda
 lasso_model$lambda.min; lasso_model$lambda.1se
 lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se, 
@@ -369,19 +368,17 @@ lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se,
 ```
 
 ### ii). Refit Lasso Model and Find Non-Zero Coefficients
-```{r}
+```{r, cache = T}
 # Refit model and find non-zero coefficients
 lasso_model_coef = map(
   .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
   .f = ~predict(glmnet(x, y ,alpha = 1), s = .x, type = 'coefficients')
 )
 
-
 ```
 
 ## d). Tree-based and Boosted Models
-```{r}
-
+```{r, cache = T}
 boost_model = gbm(SalePrice ~ ., 
                   data = mutate_if(housing.factors, is.character, as.factor)[housing.factors$Yr.Sold != 2010, ],
                   distribution = 'gaussian', 
@@ -393,12 +390,12 @@ boost_model = gbm(SalePrice ~ .,
 ```
 
 ### i). Summary Table of Boosted Model
-```{r}
+```{r, cache = T}
 kable(summary(boost_model))
 ```
 
 ### ii). Relative Influence Chart
-```{r}
+```{r, cache = T}
 for(.x in 1:5) {
   plot(boost_model, i = summary(boost_model)[.x, 'var'])
 }
@@ -495,7 +492,7 @@ performance_metrics = function(actual = housing.factors[housing.factors$Yr.Sold 
 
 
 ## b). Comparing Accuracy of Prediction Estimates Against Actual Values in 2010.
-```{r}
+```{r, cache = T}
 # Use performance_metrics function defined above for all models
 map(list(forward_pred = forward_pred, backward_pred = backward_pred,
          lasso_pred = lasso_pred, boost_pred = boost_pred),
@@ -522,7 +519,7 @@ map(list(forward_pred = forward_pred, backward_pred = backward_pred,
 
 # 4. The Model's accuracy accros Neighbourhoods
 
-```{r}
+```{r, cache = T}
 # TODO: Khadija, the code below calls the performance_metrics function and should help
 map(list(forward_pred = forward_pred, backward_pred = backward_pred,
          lasso_pred = lasso_pred, boost_pred = boost_pred),
@@ -544,14 +541,13 @@ Roof Renovation Cost [Super Storm Restoration](https://www.superstormrestoration
 
 
 ```{r, cache = T}
-
 reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
                       budget = c('medium', 'low', 'high')) {
 
   # # Confirm upgrade and budget args; otherwise throw an error
   upgrade = tryCatch(
-    match.arg(upgrade, choices = c('add_bathroom', 'remodel_kitchen',
+    match.arg(upgrade, choices = c('add_full_bathroom', 'remodel_kitchen',
                                   'finish_basement', 'replace_roof'),
                       several.ok = T),
     error = identity
@@ -567,7 +563,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
       break()
   } else {
     # Update data based on stated upgrades
-    remodeled_housing = mutate(housing, Reno.Cost = 0)
+    remodeled_housing = mutate(housing.factors, Reno.Cost = 0)
     
     # Add bathroom
     if('add_full_bathroom' %in% upgrade) {
@@ -598,17 +594,23 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           T ~ Reno.Cost
         ),
         Kitchen.Qual = case_when(
-          Kitchen.Qual == 'Gd' ~ 'Ex',
-          Kitchen.Qual == "TA" & budget == 'low' ~ 'Gd',
-          Kitchen.Qual == "TA" ~ 'Ex',
-          Kitchen.Qual == 'Fa' & budget == 'low' ~ "TA",
-          Kitchen.Qual == 'Fa' & budget == 'medium' ~ "Gd",
-          Kitchen.Qual == 'Fa' & budget == 'high' ~ 'Ex',
-          Kitchen.Qual == 'Po' & budget == 'low' ~ 'Fa',
-          Kitchen.Qual == 'Po' & budget == 'medium' ~ "TA",
-          Kitchen.Qual == 'Po' & budget == 'high' ~ 'Gd',
-          T ~ Kitchen.Qual
-        ),
+          budget == 'low' ~ case_when(
+            Kitchen.Qual %in% c('Gd', 'Ex') ~ 'Ex',
+            Kitchen.Qual == 'TA' ~ 'Gd',
+            Kitchen.Qual == 'Fa' ~ 'TA',
+            Kitchen.Qual == 'Po' ~ 'Fa'
+          ),
+          budget == 'medium' ~ case_when(
+            Kitchen.Qual %in% c('TA', 'Gd', 'Ex') ~ 'Ex',
+            Kitchen.Qual == 'Fa' ~ 'Gd',
+            Kitchen.Qual == 'Po' ~ 'TA'
+          ),
+          budget == 'high' ~ case_when(
+            Kitchen.Qual %in% c('Fa', 'TA', 'Gd', 'Ex') ~ 'Ex',
+            Kitchen.Qual == 'Po' ~ 'Gd'
+          ),
+          T ~ as.character(Kitchen.Qual)
+        ) %>% factor(levels = levels(housing.factors$Kitchen.Qual)),
         Year.Remod.Add = 2010
       )
     }
@@ -626,12 +628,12 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           T ~ Reno.Cost
         ),
         BsmtFin.Type.1 = case_when(
-          Bsmt.Cond %in% c("DNE", '') ~ BsmtFin.Type.1,
+          Bsmt.Cond %in% c("DNE", '') ~ as.character(BsmtFin.Type.1),
           budget == 'low' ~ "BLQ",
           budget == 'medium' ~ "ALQ",
           budget == 'high' ~ "GLQ",
-          T ~ BsmtFin.Type.1
-        ),
+          T ~ as.character(BsmtFin.Type.1)
+        ) %>% factor(levels = levels(housing.factors$BsmtFin.Type.1)),
         BsmtFin.SF.1 = BsmtFin.SF.1 + Bsmt.Unf.SF,
         Year.Remod.Add = 2010
       )
@@ -648,31 +650,40 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
           T ~ Reno.Cost
         ),
         Exter.Cond = case_when(
-          Exter.Cond == 'Gd' ~ 'Ex',
-          Exter.Cond == "TA" & budget == 'low' ~ 'Gd',
-          Exter.Cond == "TA" ~ 'Ex',
-          Exter.Cond == "Fa" & budget == 'low' ~ "TA",
-          Exter.Cond == "Fa" & budget == 'medium' ~ 'Gd',
-          Exter.Cond == "Fa" & budget == 'high' ~ 'Ex',
-          Exter.Cond == "Po" & budget == 'low' ~ "Fa",
-          Exter.Cond == "Po" & budget == 'medium' ~ "TA",
-          Exter.Cond == "Po" & budget == 'high' ~ 'Gd',
-          T ~ Exter.Cond
-        ),
+          budget == 'low' ~ case_when(
+            Exter.Cond %in% c('Gd', 'Ex') ~ 'Ex',
+            Exter.Cond == 'TA' ~ 'Gd',
+            Exter.Cond == 'Fa' ~ 'TA',
+            Exter.Cond == 'Po' ~ 'Fa'
+          ),
+          budget == 'medium' ~ case_when(
+            Exter.Cond %in% c('TA', 'Gd', 'Ex') ~ 'Ex',
+            Exter.Cond == 'Fa' ~ 'Gd',
+            Exter.Cond == 'Po' ~ 'TA'
+          ),
+          budget == 'high' ~ case_when(
+            Exter.Cond %in% c('Fa', 'TA', 'Gd', 'Ex') ~ 'Ex',
+            Exter.Cond == 'Po' ~ 'Gd',
+          ),
+          T ~ as.character(Exter.Cond)
+        ) %>% factor(levels = levels(housing.factors$Exter.Cond)),
         Year.Remod.Add = 2010
       )
     }
     
     # Predict based on new features
     costs_benefits = tibble(
-      orig_predicted_sale_price = as.numeric(lasso_pred),
-      new_predicted_sale_price = predict(
-        boost_model, 
-        newdata = remodeled_housing[remodeled_housing$Yr.Sold == 2010, ],
-        n.trees = 5000
+      orig_predicted_sale_price = predict(
+        lm(formula(paste('SalePrice ~', 
+                         str_flatten(forward_predictors, "+"))), 
+           data = housing.factors)
       ),
-      remodeling_costs = remodeled_housing[remodeled_housing$Yr.Sold == 2010,
-                                           'Reno.Cost'],
+      new_predicted_sale_price = predict(
+        lm(formula(paste('SalePrice ~', 
+                         str_flatten(forward_predictors, "+"))), 
+           data = remodeled_housing)
+      ),
+      remodeling_costs = remodeled_housing$Reno.Cost,
       net = new_predicted_sale_price - orig_predicted_sale_price - remodeling_costs
     ) 
     
@@ -713,9 +724,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
                                             "Exter.Cond", "Year.Remod.Add",
                                             "SalePrice", "Reno.Cost")],
                         "cost_benefits" = costs_benefits)))      
-    }
-                                  
-           
+    }  
   }
 }
 
@@ -725,7 +734,16 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
 
 ## Using the Renovation Calculator
 ```{r}
-
-reno_value('add_bathroom', 'high')
-
+reno_value(c('add_full_bathroom', 'remodel_kitchen',
+             'replace_roof'), 'medium')
+reno_value(c('add_full_bathroom', 'remodel_kitchen',
+             'replace_roof'), 'low')
+reno_value(c('add_full_bathroom', 'remodel_kitchen',
+             'replace_roof'), 'high')
+reno_value('remodel_kitchen', 'medium')
 ```
+
+Some notes on recommended renovations:
+- In general, remodeling costs exceed marginal increases in sales price under our model (i.e., it's not worth it).
+- Replacing the roof does not seem to be a good investment, as it does not result in predicted sales that justify the costs (because of the relatively small coefficient of the relevant predictors).
+- Realtors famously say the three most important factors in home purchasing are "location, location, and location", which is not surprising based on these results. All of these renovations don't change some of the underlying features of the neighborhood and site, which is why we see the value of renovations remaining pretty marginal.
