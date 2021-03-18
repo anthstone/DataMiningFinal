@@ -606,7 +606,7 @@ performance_metrics = function(actual = housing.factors[housing.factors$Yr.Sold 
         rel_error = (predicted - actual) / actual
       ) %>% 
         group_by(neighborhood) %>% 
-        summarize(across(mse:rel_error, mean)) %>% 
+        dplyr::summarize(across(mse:rel_error, mean)) %>% 
         ungroup()
       
       # Plot

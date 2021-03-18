@@ -8,11 +8,13 @@
 
 [ARS; ] 0ciii No Comment
 
-[ ] #1a Omit plots with vars that are never used?
+[ ] #1a Omit plots with vars that are never used? 
+Khadija: Do we need to? its expolatory analysis, I think its okay even if we leave them in. 
 
 [ ] #1b Get table to show list of correlations with just Var/Var/Value
 
 [ ] #1c Omit plots with vars that are never used?
+Khadija: Same as for 1a)
 
 [ARS; ] #2ai No Comment
 
@@ -21,10 +23,16 @@
 [ ] #2aiii Show Plots again after refit?
 
 [ARS; ]* #2b No Comment
+K: My glm doesnt work. Seems like there are still isuses with factors and/or NAs. The error I get
+
+Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : contrasts can be applied only to factors with 2 or more levels
 
 [ ]* #2ci I would appriciate a once over to make sure I didn't butcher this. Factors were being dumb, so just numerics in model
+K: This seems good to me. This is where i was stuck. I was trying to loop it over for ALL THE VARIABLES and just have the table print out. Maybe my main problem was with factors too. Not quite sure. Also, why cant we add factors to it? Would it be smart to juts take it out than to show that we cant add factors, cause there is some issue? Cause GAM should work with factors. 
 
 [ ]* #2cii I would appriciate a once over to make sure I didn't butcher this; see if you are okay with the final GAM
+K: The final selection of the variables is a little bit on how complex you do want or dont want it to be, so it depends on our judgement too a little bit. I think what you have seems fine to me. 
+
 
 [ ] #2ciii I added this to measure the GAM against linear regression
 
@@ -39,6 +47,10 @@
 [ ] #2eii Maybe just output the table here?
 
 [ ] #2eiii Why do we need five relative influence charts when we already have one in 2Di?
+K: I am getting this error/similar factor/dimension related error for quite a bit of the code where factors have been included. Something is going weird with the factors for me. 
+
+"Error in Summary.factor(61L, na.rm = FALSE) : ‘min’ not meaningful for factors"
+
 
 [ARS; ] #3a No Comment
 
@@ -50,6 +62,7 @@
 
 [ ] #4 Model's Accuracy across Neighbourhoods. This was working well for me last night, but I am having issues now
 	"across() must only be used inise dplyer verbs"
+K: Fixed this
 
 [ ] #5a (Evan) Double check to make sure I merged our changes properly; I tweaked the output table a bit.
 
