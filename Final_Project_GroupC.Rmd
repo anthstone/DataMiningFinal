@@ -450,6 +450,7 @@ plot.smoothCV <- function(smoothcv.err, K, title.text = "", facet = FALSE,
 cv.cols <- c(5,21,22,28,36,39,40,45,46,48,56,64,68,69,78)
 
 for (i in cv.cols){
+
   #print(colnames(housing[i]))
   cv.allvar <- smoothCV(x = housing[[i]],
                         y= housing$SalePrice,
@@ -458,15 +459,40 @@ for (i in cv.cols){
                         )
   cv.allvar.plot<- plot.smoothCV(cv.allvar,
                 K=10,
-                title.text= "CV: Error"
+                title.text= paste(colnames(housing[i]))
                 )
-  print(cv.allvar.plot$data$cv.error)
+  cv.allvar.plot
+  #print(which.min(cv.allvar.plot$data$cv.error))
 }
   
+# Lot.Frontage cubic 6
+# Year.Built Cubic 6
+# Year.Remod.Add Smooth 10
+# Mas.Vnr.Area Poly 1
+# BsmtFin.SF.1 Poly 1
+# Bsmt.Unf.SF Cubic 6
+# Total.Bsmt.SF Poly 1
+# X1st.Flr.SF Poly 1
+# x2nd.Flr.SF Poly 2
+# Gr.Liv.Area Poly 1
+# TotRms.AbvGrd Cubic 3
+# Garage.Area Smooth 10
+# Wood.Deck.SF Poly 1
+# Open.Porch.SF Poly 1
+# Mo.Sold Smooth 3
+```
 
+```{r}
+gam.model <- gam(SalePrice~bs(Lot.Frontage,6) + bs(Year.Built, 6) +
+                  s(Year.Remod.Add, 10) + poly(Mas.Vnr.Area,1) +
+                  poly(BsmtFin.SF.1,1) + bs(Bsmt.Unf.SF, 6) +
+                  poly(Total.Bsmt.SF,1) +  poly(X1st.Flr.SF,1) +
+                  poly(X2nd.Flr.SF,2) + poly(Gr.Liv.Area,1) + bs(TotRms.AbvGrd,3) +
+                  s(Garage.Area, 10) + poly(Wood.Deck.SF, 1) + poly(Open.Porch.SF) + 
+                  s(Mo.Sold, 3), data = housing)
 
-
-
+par(mfrow = c(2,2))
+plot(gam.model, col='red', lwd =2)
 ```
 
 
