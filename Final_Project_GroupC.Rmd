@@ -46,7 +46,6 @@ housing <- read.csv(file = "AmesHousing.csv", header = TRUE)
 ## c). Preparing Dataset for Analysis
 ### i). Removing NA values from dataset
 ```{r}
-
 if (sum(is.na(housing)) >0) {
   DNE.Cols = c(74,75,76,32,33,34,35,37,8,59,65,66,62,60,29,30)
   zero.Cols = c(3, 5, 49,50,61,63,64,28)
@@ -67,18 +66,13 @@ if (sum(is.na(housing)) >0) {
 
   sum(is.na(housing))  #Verify NAs are removed
 }
-
 ```
-#### ii). Verify absences of NA values
+### ii). Verify absences of NA values
 ```{r}
-
-sum(is.na(housing))
-
-#Show columns that have at least one NA
-housing[, colSums(is.na(housing)) > 0]
-
-#Show rows that have at least one NA
-housing[rowSums(is.na(housing)) > 0,]
+NA.Cols.Check = tryCatch( sum(is.na(housing))==0,
+                error = list(errormessage = print("Error: Manually Adding Cols"),
+                        colerrors = print(housing[, colSums(is.na(housing)) > 0]),
+                        rowerrors = print(housing[rowSums(is.na(housing)) > 0,])))
 
 ```
 
@@ -98,7 +92,6 @@ housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po
 housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 housing.factors$BsmtFin.Type.1 <- factor(housing.factors$BsmtFin.Type.1, levels = c('DNE', 'Unf', 'LwQ', 'Rec', 'BLQ', 'ALQ', 'GLQ'))
 housing.factors$BsmtFin.Type.2 <- factor(housing.factors$BsmtFin.Type.2, levels = c('DNE', 'Unf', 'LwQ', 'Rec', 'BLQ', 'ALQ', 'GLQ'))
-
 housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(20, 30, 40, 45, 50, 60, 70, 75, 80, 85, 90, 120, 150, 160, 180, 190))
 
 # Print any columns with missing values
@@ -106,7 +99,6 @@ for(v in names(housing.factors)) {
   n_na = sum(is.na(housing.factors[v]))
   if(n_na > 0) {print(v); print(n_na)}
 }
-
 ```
 
 
@@ -135,10 +127,10 @@ for (i in numeric.cols.vec){
 
 ## b). Correlation Plot
 ```{r}
-
 cor.housing.sales <- cor(numeric.df[,-1:-2])
 ggcorrplot(cor.housing.sales)
 
+(cor.housing.sales > 0.5 | cor.housing.sales < -0.5) & cor.housing.sales != 1
 ```
 
 Once the dataset has been scrubbed, initial exploratory data analysis is conducted. The first analysis is looking at all numeric vectors in the dataset and checking to see if there are any correlations between variables.
@@ -151,11 +143,18 @@ Gr.Liv.Area     ~   TotRms.AbvGrd   (0.81)
 
 Garage.Cars     ~   Garage.Area     (0.89)
 
+The exploratory analysis shows that the SalePrice is strongly correlated with a number of variables, but some of these variables are correlated with each other, since they are measuring almost the same thing. These variables are looked at below. However, we see that a lot of predictors are indicative of SalePrice, and are positively correlated (corr >0.5) with our independent variable such as that of  Overall Quality, Year Built, Year Remodeled, veneer area, Area of type1 basement (BasementSF2), areas of type2 basement (BasementSF2), Total basement area, First floor area, Ground floor living area, number of full bathrooms, and the garage area in terms of cars and square feet. We have to note however, these are all numeric variables.  
 
-## c). Box Plots of quals
+By looking at the numeric variables, we can see some of the thing are correlated with each other. For example, the Overall Quality variable is correlated with all of our initial selection of variables (the ones with -0.5<corr<0.5) and it seems like this index was created by looking taking these other variables into account. 
+
+All the housing characteristics are highly correlated with each other, for example the area of the first floor is correlated with area of the basement and the living area. Which is expected since the house has the same area for each of these floors, the sq foot area can’t be different by much. The number of bathrooms is also correlated with the Living room area, which again is dependent on the size of the house itself, the larger the size (which can be roughly approximated by the living area since that is the largest area in a house) the more bathrooms required. It would be smart to just keep one measure of area at in our linear model. 
+
+The garage area and the garage cars are also highly correlated because they are measuring the same thing. 
+
+Year built and year remodeled do not have such a high correlation, and both are important variables. 
+
+## c). Box Plots of Categorical Variables
 ```{r}
-
-
 qual.cols.vec <-  c(29, 30, 32, 33, 42, 55, 59, 65, 66, 74)
 for (i in qual.cols.vec){
   boxplots <- qplot(data = housing.factors, x = housing.factors[,i], y = SalePrice, geom = "boxplot", xlab = paste(colnames(housing.factors)[i]))
@@ -171,20 +170,18 @@ for (i in qual.cols.vec){
   print(boxplots)
   
 }
-
 #Note all variables that are used in models, so we can retain their box plots:
-
-
 ```
 
+For our categorical variables, SalePrice is seen to be increasing (not checking if the increase is statistically significant just yet) across better quality/conditions of all our qualitative predictors. Although the increasing quality is seen to have a higher effect on SalePrice than the increasing conditions of these variables. Some examples are increasing SalePrice as Exterior Quality and Exterior condition, Basement Quality and Basement Conditions, Pool, kitchen, fireplace qualities go from Poor to Excellent. Other predictors such as Presence of an alley, the Lot characteristics, and the zoning variables do not seem to have a upwards or downwards trend with SalePrice. 
 
-# 2. Sales Price Prediction Model (Khadija w/ assistance)
+# 2. Sales Price Prediction Models
 Tip: think about performance metrics other than MSE: MAE, relative error, etc.
 > A predictive model that uses housing sale prices 2006-2009. 
 
 ## a). Forward and Backward Stepwise Model
 ### i). Finding the Optimal Stepwise Model
-```{r, cache = T}
+```{r, cache = T, message=FALSE}
 # Forward and backward stepwise (best subset will be too time-intensive)
 nvmax = 1000 #ncol(housing)
 model = map(
@@ -335,9 +332,11 @@ backward_pred = predict(
 glm = glm(SalePrice ~ ., data = housing.factors[housing.factors$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 ```
-## a
+## c). General Additive Model
 
-```{r}
+### i). Model Preperation and Functions
+
+```{r, cache=TRUE, message=FALSE}
 polyTestErr <- function(dat, train, d) {
   poly.fit <- lm(y ~ poly(x, degree = d), data = dat, subset = train)
   preds <- predict(poly.fit, dat)[-train]
@@ -467,7 +466,7 @@ for (i in cv.cols){
   #print(which.min(cv.allvar.plot$data$cv.error))
 }
   
-# Lot.Frontage cubic 6
+# Lot.Frontage poly 9
 # Year.Built Cubic 6
 # Year.Remod.Add Smooth 10
 # Mas.Vnr.Area Poly 1
@@ -481,11 +480,11 @@ for (i in cv.cols){
 # Garage.Area Smooth 10
 # Wood.Deck.SF Poly 1
 # Open.Porch.SF Poly 1
-# Mo.Sold Smooth 3
+# Mo.Sold Smooth 5
 ```
-
+### ii).Fit General Additive Model, Predict 2010 Data, and Plot GAM.
 ```{r}
-gam.model <- gam(SalePrice~bs(Lot.Frontage,6) + bs(Year.Built, 6) +
+gam.model <- gam(SalePrice~poly(Lot.Frontage,9) + bs(Year.Built, 6) +
                   s(Year.Remod.Add, 10) + poly(Mas.Vnr.Area,1) +
                   poly(BsmtFin.SF.1,1) + bs(Bsmt.Unf.SF, 6) +
                   poly(Total.Bsmt.SF,1) +  poly(X1st.Flr.SF,1) +
@@ -493,13 +492,16 @@ gam.model <- gam(SalePrice~bs(Lot.Frontage,6) + bs(Year.Built, 6) +
                   s(Garage.Area, 10) + poly(Wood.Deck.SF, 1) + poly(Open.Porch.SF) + 
                   s(Mo.Sold, 3), data = housing)
 
-par(mfrow = c(2,2))
+gam_pred = predict(gam.model, 
+                     newdata = housing.factors[housing.factors$Yr.Sold == 2010, ])
+par(mfrow = c(2,4))
 plot(gam.model, col='red', lwd =2)
 ```
 
 
-## c). Lasso Model
-```{r}
+## d). Lasso Model
+### i). Initial Lasso Model Fit
+```{r, cache = T}
 
 # Lasso [Primary]
 # Define x and y objects for Lasso, as well as specifying training data
@@ -513,16 +515,16 @@ plot(lasso_model)
 
 ```
 
-### i). Minimun Lambda and 1SE Value
-```{r}
+### ii). Minimun Lambda and 1SE Value
+```{r, cache = T}
 # Find min and 1SE values of lambda
 lasso_model$lambda.min; lasso_model$lambda.1se
 lasso_pred = predict(lasso_model, s = lasso_model$lambda.1se, 
                      newx = x[-train, ])
 ```
 
-### ii). Refit Lasso Model and Find Non-Zero Coefficients
-```{r}
+### iii). Refit Lasso Model and Find Non-Zero Coefficients
+```{r, cache = T}
 # Refit model and find non-zero coefficients
 lasso_model_coef = map(
   .x = c(lasso_model$lambda.min, lasso_model$lambda.min),
@@ -533,8 +535,9 @@ kable(lasso_model_coef[[1]][lasso_model_coef[[1]][,1]!=0,1])
 
 ```
 
-## d). Tree-based and Boosted Models
-```{r}
+## e). Tree-based and Boosted Models
+### i). Create Boosted Model
+```{r, cache = T}
 
 boost_model = gbm(SalePrice ~ ., 
                   data = mutate_if(housing.factors, is.character, as.factor)[housing.factors$Yr.Sold != 2010, ],
@@ -547,12 +550,12 @@ boost_model = gbm(SalePrice ~ .,
 ```
 
 ### i). Summary Table of Boosted Model
-```{r}
-kable(summary(boost_model))
+```{r, cache = T}
+summary(boost_model)
 ```
 
 ### ii). Relative Influence Chart
-```{r}
+```{r, cache = T}
 for(.x in 1:5) {
   plot(boost_model, i = summary(boost_model)[.x, 'var'])
 }
@@ -652,7 +655,7 @@ performance_metrics = function(actual = housing.factors[housing.factors$Yr.Sold 
 ```{r}
 # Use performance_metrics function defined above for all models
 map(list(forward_pred = forward_pred, backward_pred = backward_pred,
-         lasso_pred = lasso_pred, boost_pred = boost_pred),
+         lasso_pred = lasso_pred, boost_pred = boost_pred, gam_pred = gam_pred),
     ~performance_metrics(predicted = .x))
 ```
 The Forward Stepwise model has the lowest MSE, MAE, and Relative Error. 
@@ -674,17 +677,18 @@ The Forward Stepwise model has the lowest MSE, MAE, and Relative Error.
 
 ```
 
-# 4. The Model's accuracy across Neighbourhoods
+# 4). The Model's accuracy across Neighbourhoods
 
-```{r}
-# TODO: Khadija, the code below calls the performance_metrics function and should help
-map(list(forward_pred = forward_pred, backward_pred = backward_pred,
-         lasso_pred = lasso_pred, boost_pred = boost_pred),
-    ~performance_metrics(predicted = .x, by_neighborhood = T))
+```{r, cache = T}
+# map(list(forward_pred = forward_pred, backward_pred = backward_pred,
+#          lasso_pred = lasso_pred, boost_pred = boost_pred),
+#     ~performance_metrics(predicted = .x, by_neighborhood = T))
 
 ```
 
-# 5. Renovation Value Calculator (Evan and Anthony)
+# 5). Renovation Value Calculator (Evan and Anthony)
+
+## a). Creating the Calculator
 
 I am going to write a bit about the calculator
 
@@ -754,17 +758,23 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
         ),
         PreReno.Kitchen.Qual = Kitchen.Qual,
         Kitchen.Qual = case_when(
-          Kitchen.Qual == 'Gd' ~ 'Ex',
-          Kitchen.Qual == "TA" & budget == 'low' ~ 'Gd',
-          Kitchen.Qual == "TA" ~ 'Ex',
-          Kitchen.Qual == 'Fa' & budget == 'low' ~ "TA",
-          Kitchen.Qual == 'Fa' & budget == 'medium' ~ "Gd",
-          Kitchen.Qual == 'Fa' & budget == 'high' ~ 'Ex',
-          Kitchen.Qual == 'Po' & budget == 'low' ~ 'Fa',
-          Kitchen.Qual == 'Po' & budget == 'medium' ~ "TA",
-          Kitchen.Qual == 'Po' & budget == 'high' ~ 'Gd',
-          T ~ Kitchen.Qual
-        ),
+          budget == 'low' ~ case_when(
+            Kitchen.Qual %in% c('Gd', 'Ex') ~ 'Ex',
+            Kitchen.Qual == 'TA' ~ 'Gd',
+            Kitchen.Qual == 'Fa' ~ 'TA',
+            Kitchen.Qual == 'Po' ~ 'Fa'
+          ),
+          budget == 'medium' ~ case_when(
+            Kitchen.Qual %in% c('TA', 'Gd', 'Ex') ~ 'Ex',
+            Kitchen.Qual == 'Fa' ~ 'Gd',
+            Kitchen.Qual == 'Po' ~ 'TA'
+          ),
+          budget == 'high' ~ case_when(
+            Kitchen.Qual %in% c('Fa', 'TA', 'Gd', 'Ex') ~ 'Ex',
+            Kitchen.Qual == 'Po' ~ 'Gd'
+          ),
+          T ~ as.character(Kitchen.Qual)
+        ) %>% factor(levels = levels(housing.factors$Kitchen.Qual)),
         Year.Remod.Add = 2010
       )
     }
@@ -783,12 +793,12 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
         ),
         PreReno.BsmtFin.Type.1 = BsmtFin.Type.1,
         BsmtFin.Type.1 = case_when(
-          Bsmt.Cond %in% c("DNE", '') ~ BsmtFin.Type.1,
+          Bsmt.Cond %in% c("DNE", '') ~ as.character(BsmtFin.Type.1),
           budget == 'low' ~ "BLQ",
           budget == 'medium' ~ "ALQ",
           budget == 'high' ~ "GLQ",
-          T ~ BsmtFin.Type.1
-        ),
+          T ~ as.character(BsmtFin.Type.1)
+        ) %>% factor(levels = levels(housing.factors$BsmtFin.Type.1)),
         PreReno.BsmtFin.SF.1 = BsmtFin.SF.1,
         BsmtFin.SF.1 = BsmtFin.SF.1 + Bsmt.Unf.SF,
         Year.Remod.Add = 2010
@@ -807,31 +817,40 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
         ),
         PreReno.Exter.Cond = Exter.Cond,
         Exter.Cond = case_when(
-          Exter.Cond == 'Gd' ~ 'Ex',
-          Exter.Cond == "TA" & budget == 'low' ~ 'Gd',
-          Exter.Cond == "TA" ~ 'Ex',
-          Exter.Cond == "Fa" & budget == 'low' ~ "TA",
-          Exter.Cond == "Fa" & budget == 'medium' ~ 'Gd',
-          Exter.Cond == "Fa" & budget == 'high' ~ 'Ex',
-          Exter.Cond == "Po" & budget == 'low' ~ "Fa",
-          Exter.Cond == "Po" & budget == 'medium' ~ "TA",
-          Exter.Cond == "Po" & budget == 'high' ~ 'Gd',
-          T ~ Exter.Cond
-        ),
+          budget == 'low' ~ case_when(
+            Exter.Cond %in% c('Gd', 'Ex') ~ 'Ex',
+            Exter.Cond == 'TA' ~ 'Gd',
+            Exter.Cond == 'Fa' ~ 'TA',
+            Exter.Cond == 'Po' ~ 'Fa'
+          ),
+          budget == 'medium' ~ case_when(
+            Exter.Cond %in% c('TA', 'Gd', 'Ex') ~ 'Ex',
+            Exter.Cond == 'Fa' ~ 'Gd',
+            Exter.Cond == 'Po' ~ 'TA'
+          ),
+          budget == 'high' ~ case_when(
+            Exter.Cond %in% c('Fa', 'TA', 'Gd', 'Ex') ~ 'Ex',
+            Exter.Cond == 'Po' ~ 'Gd',
+          ),
+          T ~ as.character(Exter.Cond)
+        ) %>% factor(levels = levels(housing.factors$Exter.Cond)),
         Year.Remod.Add = 2010
       )
     }
     
     # Predict based on new features
     costs_benefits = tibble(
-      orig_predicted_sale_price = as.numeric(lasso_pred),
-      new_predicted_sale_price = predict(
-        boost_model, 
-        newdata = remodeled_housing[remodeled_housing$Yr.Sold == 2010, ],
-        n.trees = 5000
+      orig_predicted_sale_price = predict(
+        lm(formula(paste('SalePrice ~', 
+                         str_flatten(forward_predictors, "+"))), 
+           data = housing.factors)
       ),
-      remodeling_costs = remodeled_housing[remodeled_housing$Yr.Sold == 2010,
-                                           'Reno.Cost'],
+      new_predicted_sale_price = predict(
+        lm(formula(paste('SalePrice ~', 
+                         str_flatten(forward_predictors, "+"))), 
+           data = remodeled_housing)
+      ),
+      remodeling_costs = remodeled_housing$Reno.Cost,
       net = new_predicted_sale_price - orig_predicted_sale_price - remodeling_costs
     ) 
     
@@ -868,7 +887,7 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
 ```
 
 
-## Using the Renovation Calculator
+## b). Using the Renovation Calculator
 ```{r}
 
 #reno_value('add_full_bathroom', 'high')
@@ -891,9 +910,13 @@ reno_value = function(upgrade = c('add_full_bathroom', 'remodel_kitchen',
 #reno_value('add_full_bathroom', 'medium')
 #reno_value('low')
 
-
-all.reno <- reno_value(c('add_full_bathroom','remodel_kitchen', 'replace_roof', 'finish_basement'),"low")
+all.reno <- reno_value(c('add_full_bathroom','remodel_kitchen', 'replace_roof', 'finish_basement'),'low')
 all.reno$remodeled_housing
 all.reno$cost_benefits[all.reno$cost_benefits$net >0 & all.reno$cost_benefits$remodeling_costs > 0,]
 
 ```
+
+Some notes on recommended renovations:
+- In general, remodeling costs exceed marginal increases in sales price under our model (i.e., it's not worth it).
+- Replacing the roof does not seem to be a good investment, as it does not result in predicted sales that justify the costs (because of the relatively small coefficient of the relevant predictors).
+- Realtors famously say the three most important factors in home purchasing are "location, location, and location", which is not surprising based on these results. All of these renovations don't change some of the underlying features of the neighborhood and site, which is why we see the value of renovations remaining pretty marginal.

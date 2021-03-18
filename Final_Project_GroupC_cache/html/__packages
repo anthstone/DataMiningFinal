@@ -23,3 +23,6 @@ Matrix
 glmnet
 gbm
 knitr
+foreach
+gam
+plyr
