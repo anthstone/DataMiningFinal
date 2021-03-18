@@ -1,0 +1,54 @@
+[ ] #0a Verify Packages; Remove what we don't need
+
+[ARS; ] #0b No Comment
+
+[ ] #0ci Waiting on Xiaoying response; maybe just do a trycatch and manually run if it catches something?
+
+[ ] #0cii Wrap in a try?
+
+[ARS; ] 0ciii No Comment
+
+[ ] #1a Omit plots with vars that are never used?
+
+[ ] #1b Get table to show list of correlations with just Var/Var/Value
+
+[ ] #1c Omit plots with vars that are never used?
+
+[ARS; ] #2ai No Comment
+
+[ARS; ] #2aii No Comment
+
+[ ] #2aiii Show Plots again after refit?
+
+[ARS; ]* #2b No Comment
+
+[ ]* #2ci I would appriciate a once over to make sure I didn't butcher this. Factors were being dumb, so just numerics in model
+
+[ ]* #2cii I would appriciate a once over to make sure I didn't butcher this; see if you are okay with the final GAM
+
+[ARS; ]* #2di No Comment
+
+[ARS; ]* #2dii No Comment
+
+[ARS; ]* #2diii No Comment
+
+[ARS; ] #2ei No Comment but takes several minutes
+
+[ ] #2eii Maybe just output the table here?
+
+[ ] #2eiii Why do we need five relative influence charts when we already have one in 2Di?
+
+[ARS; ] #3a No Comment
+
+[ ] #3b I think we should probably break this up into subpoints so we can have a brief comment for each model's accuracy
+
+[ ] #3ci I still need to do
+
+[ ] #3cii I still need to do
+
+[ ] #4 Model's Accuracy across Neighbourhoods. This was working well for me last night, but I am having issues now
+	"across() must only be used inise dplyer verbs"
+
+[ ] #5a (Evan) Double check to make sure I merged our changes properly; I tweaked the output table a bit.
+
+[ ] #5b Review the output of the reno calculator, so we can all agree on final.
