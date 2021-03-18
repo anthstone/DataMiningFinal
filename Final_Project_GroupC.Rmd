@@ -29,6 +29,9 @@ library(pROC)
 library(leaps)
 library(glmnet)
 library(gbm)
+library(gam)
+library(splines)
+library(plyr)
 set.seed(95791)
 ```
 
@@ -330,6 +333,142 @@ backward_pred = predict(
 glm = glm(SalePrice ~ ., data = housing.factors[housing.factors$Yr.Sold != 2010, ])
 names(coef(glm)[coef(summary(glm))[, "Pr(>|t|)"]  < 0.05])[-1]
 ```
+## a
+
+```{r}
+polyTestErr <- function(dat, train, d) {
+  poly.fit <- lm(y ~ poly(x, degree = d), data = dat, subset = train)
+  preds <- predict(poly.fit, dat)[-train]
+  mean((dat$y[-train] - preds)^2)
+}
+
+cubicSplineTestErr <- function(dat, train, df) {
+  if(df >= 3) {
+    spline.fit <- lm(y ~ bs(x, df = df), data = dat, subset = train)
+    preds <- predict(spline.fit, dat)[-train]
+    mean((dat$y[-train] - preds)^2)
+  } else {
+    NA
+  }
+}
+
+smoothSplineTestErr <- function(dat, train, df) {
+  if(df > 1) {
+    spline.fit <- with(dat, smooth.spline(x[train], y[train], df = df))
+    preds <- predict(spline.fit, dat$x)$y[-train]
+    mean((dat$y[-train] - preds)^2)
+  } else {
+    NA
+  }
+}
+
+smoothCV <- function(x, y, K = 10, df.min = 1, df.max = 10) {
+  dat <- data.frame(x = x, y = y)
+  n <- length(y) # number of observations
+  
+  num.methods <- 3
+  method.names <- c("poly", "cubic.spline", "smoothing.spline")
+  err.out <- data.frame(df = rep(df.min:df.max, each = num.methods),
+                        method = rep(method.names, df.max - df.min + 1))
+  
+  # Get a random permutation of the indexes
+  random.perm <- sample(n)
+  # break points for the folds.  If n is not evenly divisible by K,
+  # these may not be of exactly the same size.
+  fold.breaks <- round(seq(1,n+1, length.out = K + 1))
+  fold.start <- fold.breaks[1:K]
+  fold.end <- fold.breaks[2:(K+1)] - 1
+  fold.end[K] <- n # Fix the last endoint to equal n
+  fold.size <- fold.end - fold.start + 1 # num obs in each fold
+  
+  cv.err <- NULL
+  fold.err <- matrix(0, nrow = K, ncol = 3)
+  colnames(fold.err) <- c("poly", "cubic.spline", "smoothing.spline")
+  # Outer loop: Loop over degrees of freedom
+  # Inner loop: Iterate over the K folds
+  for(df in df.min:df.max) {
+    for(k in 1:K) {
+      test.idx <- fold.start[k]:fold.end[k]
+      train <- random.perm[-test.idx]
+      
+      # Calculate test error for the three models
+      poly.err <- polyTestErr(dat, train = train, d = df)
+      cubic.spline.err <- cubicSplineTestErr(dat, train = train, df = df)
+      smooth.spline.err <- smoothSplineTestErr(dat, train = train, df = df)
+      
+      # Store results for this fold
+      fold.err[k,] <- c(poly.err, cubic.spline.err, smooth.spline.err)
+#       print(fold.err[k,])
+    }
+    # Perform weighted averaging to calculate CV error estimate
+    # MSE estimates from each fold are weighted by the size of the fold
+    # If all folds are the same size, this is the same thing as the unweighted
+    # average of all of the MSE's
+    err.ave <- colSums(sweep(fold.err, MARGIN = 1, fold.size, FUN = "*") / n)
+    cv.err <- c(cv.err, err.ave)
+  }
+  err.out$cv.error <- cv.err
+  err.out
+}
+
+plot.smoothCV <- function(smoothcv.err, K, title.text = "", facet = FALSE,
+                          y.scale.factor = NULL) {
+
+  # Convert the method names
+  dat <- transform(smoothcv.err, 
+                   method = mapvalues(method,
+                                      c("poly", "cubic.spline", "smoothing.spline"),
+                                      c("Polynomial", "Cubic spline", "Smoothing Spline")
+                                      )
+                   )
+  
+  # Set axes labels
+  x.text <- "Degrees of Freedom"
+  y.text <- paste0(K, "-fold CV Error")
+  
+  # The ggplot "setting": data, axes, and color by method
+  p <- ggplot(data = dat, aes(x = df, y = cv.error, colour = method)) 
+  
+  # Overlay with line plots, data points, axes labels, and graph title
+  p <- p + geom_line() + geom_point() + xlab(x.text) + ylab(y.text) +
+          ggtitle(title.text)
+  
+  # Adjust the y axis range if y.scale.factor is specified
+  if(!is.null(y.scale.factor)) {
+    min.err <- min(dat$cv.error, na.rm = TRUE)
+    p <- p + ylim(min.err, y.scale.factor * min.err)
+  }
+  
+  # Show a separate plot per method if facet=TRUE
+  if(!facet) {
+    print(p)
+  } else {
+    print(p + facet_wrap("method"))
+  }
+}
+
+cv.cols <- c(5,21,22,28,36,39,40,45,46,48,56,64,68,69,78)
+
+for (i in cv.cols){
+  #print(colnames(housing[i]))
+  cv.allvar <- smoothCV(x = housing[[i]],
+                        y= housing$SalePrice,
+                        df.min = 1,
+                        df.max = 10
+                        )
+  cv.allvar.plot<- plot.smoothCV(cv.allvar,
+                K=10,
+                title.text= "CV: Error"
+                )
+  print(cv.allvar.plot$data$cv.error)
+}
+  
+
+
+
+
+```
+
 
 ## c). Lasso Model
 ```{r}
@@ -362,6 +501,7 @@ lasso_model_coef = map(
   .f = ~predict(glmnet(x, y ,alpha = 1), s = .x, type = 'coefficients')
 )
 
+kable(lasso_model_coef[[1]][lasso_model_coef[[1]][,1]!=0,1])
 
 ```
 
@@ -487,7 +627,7 @@ map(list(forward_pred = forward_pred, backward_pred = backward_pred,
          lasso_pred = lasso_pred, boost_pred = boost_pred),
     ~performance_metrics(predicted = .x))
 ```
-
+The Forward Stepwise model has the lowest MSE, MAE, and Relative Error. 
 
 ## c). Home Features Relation to the Model
 ### i). Home Features That are Most Predictive of Sales Price.
@@ -506,7 +646,7 @@ map(list(forward_pred = forward_pred, backward_pred = backward_pred,
 
 ```
 
-# 4. The Model's accuracy accros Neighbourhoods
+# 4. The Model's accuracy across Neighbourhoods
 
 ```{r}
 # TODO: Khadija, the code below calls the performance_metrics function and should help
