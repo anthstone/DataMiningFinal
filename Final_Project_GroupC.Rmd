@@ -483,13 +483,13 @@ for (i in cv.cols){
 # Mo.Sold Smooth 5
 ```
 ### ii).Fit General Additive Model, Predict 2010 Data, and Plot GAM.
-```{r}
+```{r, cache=TRUE}
 gam.model <- gam(SalePrice~poly(Lot.Frontage,9) + bs(Year.Built, 6) +
                   s(Year.Remod.Add, 10) + poly(Mas.Vnr.Area,1) +
                   poly(BsmtFin.SF.1,1) + bs(Bsmt.Unf.SF, 6) +
                   poly(Total.Bsmt.SF,1) +  poly(X1st.Flr.SF,1) +
                   poly(X2nd.Flr.SF,2) + poly(Gr.Liv.Area,1) + bs(TotRms.AbvGrd,3) +
-                  s(Garage.Area, 10) + poly(Wood.Deck.SF, 1) + poly(Open.Porch.SF) + 
+                  s(Garage.Area, 10) + poly(Wood.Deck.SF, 1) + poly(Open.Porch.SF,1) + 
                   s(Mo.Sold, 3), data = housing)
 
 gam_pred = predict(gam.model, 
@@ -497,7 +497,26 @@ gam_pred = predict(gam.model,
 par(mfrow = c(2,4))
 plot(gam.model, col='red', lwd =2)
 ```
+### iii). Calculate Percent Deviance and R-Squared
+```{r}
+deviance_calc <- gam.model$deviance / gam.model$null.deviance
 
+housing.lm <-lm(SalePrice~Lot.Frontage + Year.Built +
+                  Year.Remod.Add + Mas.Vnr.Area +
+                  BsmtFin.SF.1 + Bsmt.Unf.SF +
+                  Total.Bsmt.SF +  X1st.Flr.SF +
+                  X2nd.Flr.SF + Gr.Liv.Area + TotRms.AbvGrd +
+                  Garage.Area + Wood.Deck.SF + Open.Porch.SF, data = housing)
+
+r.squared_calc <-summary(housing.lm)$r.squared
+
+dev_r2_tab <- data.frame("Deviance" = deviance_calc, "R_squared" = r.squared_calc)
+kable(x, format="html",row.names = NA)
+
+dev_r2_tab
+```
+
+The Percent Deviance is well below the R-Squared of the linear regression fit. The Linear Regression drastically outperforms the General Additive Model
 
 ## d). Lasso Model
 ### i). Initial Lasso Model Fit

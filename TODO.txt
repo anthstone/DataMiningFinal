@@ -26,6 +26,8 @@
 
 [ ]* #2cii I would appriciate a once over to make sure I didn't butcher this; see if you are okay with the final GAM
 
+[ ] #2ciii I added this to measure the GAM against linear regression
+
 [ARS; ]* #2di No Comment
 
 [ARS; ]* #2dii No Comment
