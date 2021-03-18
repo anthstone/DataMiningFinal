@@ -96,6 +96,8 @@ housing.factors$Garage.Cond <- factor(housing.factors$Garage.Cond, levels = c('D
 housing.factors$Garage.Qual <- factor(housing.factors$Garage.Qual, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 housing.factors$Pool.QC <- factor(housing.factors$Pool.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
 housing.factors$Heating.QC <- factor(housing.factors$Heating.QC, levels = c('DNE', 'Po', 'Fa', 'TA', 'Gd', 'Ex'))
+housing.factors$BsmtFin.Type.1 <- factor(housing.factors$BsmtFin.Type.1, levels = c('DNE', 'Unf', 'LwQ', 'Rec', 'BLQ', 'ALQ', 'GLQ'))
+housing.factors$BsmtFin.Type.2 <- factor(housing.factors$BsmtFin.Type.2, levels = c('DNE', 'Unf', 'LwQ', 'Rec', 'BLQ', 'ALQ', 'GLQ'))
 
 housing.factors$MS.SubClass <- factor(housing.factors$MS.SubClass , levels = c(20, 30, 40, 45, 50, 60, 70, 75, 80, 85, 90, 120, 150, 160, 180, 190))
 
