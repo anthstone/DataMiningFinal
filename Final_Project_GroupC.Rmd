@@ -699,11 +699,84 @@ The Forward Stepwise model has the lowest MSE, MAE, and Relative Error.
 # 4). The Model's accuracy across Neighbourhoods
 
 ```{r, cache = T}
-# map(list(forward_pred = forward_pred, backward_pred = backward_pred,
-#          lasso_pred = lasso_pred, boost_pred = boost_pred),
-#     ~performance_metrics(predicted = .x, by_neighborhood = T))
+model.acc <- map(list(forward_pred = forward_pred, backward_pred = backward_pred,
+         lasso_pred = lasso_pred, boost_pred = boost_pred),
+    ~performance_metrics(predicted = .x, by_neighborhood = T)) 
+
+#making further graphs at different scales for better comparison
+#forward_pred
+model.acc.fp <- as.data.frame(model.acc$forward_pred[1])
+
+model.acc.fp <- as.data.frame(model.acc$forward_pred[1]$metrics)
+ggplot(data = model.acc.fp, aes(neighborhood, mse)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "Forward predict - mse")
+
+ggplot(data = model.acc.fp, aes(neighborhood, mae)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "Forward predict - mae")
+
+ggplot(data = model.acc.fp, aes(neighborhood, rel_error)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "Forward predict - rel_error")
+
+#backward_pred
+model.acc.bp <- as.data.frame(model.acc$backward_pred[1])
+
+ggplot(data = model.acc.bp, aes(metrics.neighborhood, metrics.mse)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "backward predict - mse")
+
+ggplot(data = model.acc.bp, aes(metrics.neighborhood, metrics.mae)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "backward predict - mae")
+
+ggplot(data = model.acc.bp, aes(metrics.neighborhood, metrics.rel_error)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "backward predict - rel_error")
+
+#lasso_pred
+model.acc.lp <- as.data.frame(model.acc$lasso_pred[1])
+
+ggplot(data = model.acc.lp, aes(metrics.neighborhood, metrics.mse)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "lasso predict - mse")
+
+ggplot(data = model.acc.lp, aes(metrics.neighborhood, metrics.mae)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "lasso predict - mae")
+
+ggplot(data = model.acc.lp, aes(metrics.neighborhood, metrics.rel_error)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "lasso predict - rel_error")
+
+#boost_pred
+model.acc.bop <- as.data.frame(model.acc$boost_pred[1])
+
+ggplot(data = model.acc.bop, aes(metrics.neighborhood, metrics.mse)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "boost predict - mse")
+
+ggplot(data = model.acc.bop, aes(metrics.neighborhood, metrics.mae)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "boost predict - mae")
+
+ggplot(data = model.acc.bop, aes(metrics.neighborhood, metrics.rel_error)) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.8) + 
+  labs(title = "boost predict - rel_error")
 
 ```
+We can see that the MSE for our models across different neighborhoods is fluctuating, and the variation in MSE across different neighborhoods is highest for our boosted model if we look at the first set of barplots and scatter plots. 
+
+Plotting the errors on separate graphs gives more of a sense of how much the each of the errors are fluctuating for each of our models. Even for the forward stepwise prediction model, which is our chosen model with the best accuracy, the errors vary hugely across neighborhoods and the MSE and MAE are both high for neighborhoods such as Northridge (NoRidge), Northridge Heights (NridgHt) and Clear Creek (ClearCr). The relative errors are fluctuating up and down hugely and has highs for different neighborhoods. 
+
+The errors for the backward stepwise model are in the same pattern, with those three neighborhoods have the highest MAE and MSE. Although all the neighborhoods generally have higher MAE (less variations( and the MSE is only high for a couple of neighborhoods as noted earlier. The relative error fluctuates, with the highest being for Iowa DOT and Rail Road (IDOTRR) and Old town as was for our forward prediction model. The lowest are different in the two models. 
+
+For the lasso the higher MSE and MAE are for the same neighborhoods, although they vary from those in our earlier models. MAE again has less variation than MSE, and IDTORR and Old town still stand out with higher relative errors. The boosted model has a similar story with the pattern of errors, although there are additional neighborhoods being added which have a high MAE/MSE. 
+
+Since the neighborhoods have different standard of living, and different way construction is done, or how a new house/renovated house is perceived the predictive price models perform different for the different neighborhoods, since the characteristics that are important possibly vary in different neighborhoods. 
+
+It is important to note that the neighborhoods of Northridge (NoRidge), Northridge Heights (NridgHt) stand out with high MSE/MAE in all our models. And Iowa DOT and Rail Road (IDOTRR) and OLD town stand out with a high relative error in all our models. Maybe we need an entirely different model for these neighborhoods. 
 
 # 5). Renovation Value Calculator (Evan and Anthony)
 
